@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   Vote, 
   Plus, 
@@ -22,8 +23,10 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { VoteResultsDialog } from './VoteResultsDialog';
 import { Vote as VoteType } from '@/hooks/useVotes';
+import { useAuth } from '@/contexts/AuthContext';
 
 const VotingSystem: React.FC = () => {
+  const { profile } = useAuth();
   const {
     activeVotes,
     completedVotes,
@@ -33,7 +36,17 @@ const VotingSystem: React.FC = () => {
     castVote,
   } = useVotes();
   const { toast } = useToast();
-  const [newVote, setNewVote] = useState({ title: '', description: '', options: ['', ''], level: 'branch' as const, startDate: '', endDate: '' });
+  const [newVote, setNewVote] = useState({
+    title: '',
+    description: '',
+    options: ['', ''],
+    level: 'branch' as const,
+    province: '',
+    region: '',
+    branch: '',
+    startDate: '',
+    endDate: '',
+  });
   const [castingVote, setCastingVote] = useState<string | null>(null);
   const [viewingResults, setViewingResults] = useState<VoteType | null>(null);
 
@@ -56,7 +69,17 @@ const VotingSystem: React.FC = () => {
       ...newVote,
       status: 'pending', // Or determine status based on dates
     });
-    setNewVote({ title: '', description: '', options: ['', ''], level: 'branch', startDate: '', endDate: '' });
+    setNewVote({
+      title: '',
+      description: '',
+      options: ['', ''],
+      level: 'branch' as const,
+      province: '',
+      region: '',
+      branch: '',
+      startDate: '',
+      endDate: '',
+    });
   };
 
   const handleCastVote = async (voteId: string, optionId: string) => {
@@ -76,6 +99,16 @@ const VotingSystem: React.FC = () => {
     } finally {
       setCastingVote(null);
     }
+  };
+
+  const isEligibleToVote = (vote: VoteType) => {
+    if (!profile) return false;
+    if (profile.role === 'national') return true;
+    if (vote.level === 'national') return true;
+    if (vote.level === 'province' && vote.province === profile.province) return true;
+    if (vote.level === 'region' && vote.region === profile.region) return true;
+    if (vote.level === 'branch' && vote.branch === profile.branch) return true;
+    return false;
   };
 
   return (
@@ -142,17 +175,28 @@ const VotingSystem: React.FC = () => {
                               />
                             </div>
                           </div>
-                          <Button
-                            size="sm"
-                            onClick={() => handleCastVote(vote.id, option.id)}
-                            disabled={castingVote !== null}
-                          >
-                            {castingVote === option.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              'Vote'
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span tabIndex={0}>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleCastVote(vote.id, option.id)}
+                                  disabled={castingVote !== null || !isEligibleToVote(vote)}
+                                >
+                                  {castingVote === option.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    'Vote'
+                                  )}
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            {!isEligibleToVote(vote) && (
+                              <TooltipContent>
+                                <p>You are not eligible to vote in this election.</p>
+                              </TooltipContent>
                             )}
-                          </Button>
+                          </Tooltip>
                         </div>
                       ))}
                     </div>
@@ -247,12 +291,27 @@ const VotingSystem: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">Level</label>
                   {/* TODO: Replace with Select component */}
                   <Input value={newVote.level} onChange={(e) => setNewVote(prev => ({ ...prev, level: e.target.value as any }))} />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Province (if applicable)</label>
+                  <Input value={newVote.province} onChange={(e) => setNewVote(prev => ({ ...prev, province: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Region (if applicable)</label>
+                  <Input value={newVote.region} onChange={(e) => setNewVote(prev => ({ ...prev, region: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Branch (if applicable)</label>
+                  <Input value={newVote.branch} onChange={(e) => setNewVote(prev => ({ ...prev, branch: e.target.value }))} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">Start Date</label>
                   <Input type="date" value={newVote.startDate} onChange={(e) => setNewVote(prev => ({ ...prev, startDate: e.target.value }))} />

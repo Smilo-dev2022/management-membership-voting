@@ -12,6 +12,9 @@ export interface Vote {
   title: string;
   description: string;
   level: 'branch' | 'region' | 'province' | 'national' | 'vd';
+  province?: string;
+  region?: string;
+  branch?: string;
   startDate: string;
   endDate: string;
   status: 'active' | 'completed' | 'pending';
@@ -104,7 +107,7 @@ export const useVotes = () => {
 
   const castVote = async (voteId: string, optionId: string) => {
     // This function assumes an RPC function named `cast_vote` exists in Supabase
-    // which handles the transaction of checking for duplicate votes,
+    // which handles the transaction of checking for eligibility, preventing duplicate votes,
     // and incrementing the vote counts.
     //
     // Example SQL for the RPC function:
@@ -112,7 +115,23 @@ export const useVotes = () => {
     // RETURNS void AS $$
     // DECLARE
     //   current_user_id uuid := auth.uid();
+    //   user_profile record;
+    //   target_vote record;
     // BEGIN
+    //   -- Get user profile and vote details
+    //   SELECT * INTO user_profile FROM profiles WHERE id = current_user_id;
+    //   SELECT * INTO target_vote FROM votes WHERE id = vote_id_in;
+    //
+    //   -- Eligibility Check
+    //   IF target_vote.level != 'national' AND (
+    //     (target_vote.level = 'province' AND target_vote.province != user_profile.province) OR
+    //     (target_vote.level = 'region' AND target_vote.region != user_profile.region) OR
+    //     (target_vote.level = 'branch' AND target_vote.branch != user_profile.branch) OR
+    //     (target_vote.level = 'vd' AND target_vote.vd != user_profile.vd)
+    //   ) THEN
+    //     RAISE EXCEPTION 'User is not eligible to vote in this election.';
+    //   END IF;
+    //
     //   -- Check for duplicate vote
     //   IF EXISTS (SELECT 1 FROM user_votes WHERE user_id = current_user_id AND vote_id = vote_id_in) THEN
     //     RAISE EXCEPTION 'User has already voted.';
@@ -127,7 +146,7 @@ export const useVotes = () => {
     //   -- Increment total voted count
     //   UPDATE votes SET voted_count = voted_count + 1 WHERE id = vote_id_in;
     // END;
-    // $$ LANGUAGE plpgsql;
+    // $$ LANGUAGE plpgsql SECURITY DEFINER;
 
     try {
       const { error } = await supabase.rpc('cast_vote', {
