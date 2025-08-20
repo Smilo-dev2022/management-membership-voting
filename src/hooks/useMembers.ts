@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import { generateMembershipNumber } from '@/lib/membershipUtils';
 
 interface Member {
@@ -28,11 +29,14 @@ interface SearchFilters {
 }
 
 export const useMembers = () => {
+  const { profile } = useAuth();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchMembers = async (filters?: SearchFilters) => {
+  const fetchMembers = useCallback(async (filters?: SearchFilters) => {
+    if (!profile) return;
+
     setLoading(true);
     setError(null);
     
@@ -42,6 +46,28 @@ export const useMembers = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
+      // Role-based security filters
+      switch (profile.role) {
+        case 'province':
+          query = query.eq('province', profile.province);
+          break;
+        case 'region':
+          query = query.eq('region', profile.region);
+          break;
+        case 'branch':
+          query = query.eq('branch', profile.branch);
+          break;
+        case 'vd':
+          query = query.eq('vd', profile.vd);
+          break;
+        // National and member (if member can see others) have no location filters
+        case 'national':
+        case 'member':
+        default:
+          break;
+      }
+
+      // User-applied search filters
       if (filters?.query) {
         query = query.or(`name.ilike.%${filters.query}%,email.ilike.%${filters.query}%,membership_number.ilike.%${filters.query}%`);
       }
@@ -216,8 +242,10 @@ export const useMembers = () => {
   };
 
   useEffect(() => {
-    fetchMembers();
-  }, []);
+    if (profile) {
+      fetchMembers();
+    }
+  }, [profile, fetchMembers]);
 
   return {
     members,

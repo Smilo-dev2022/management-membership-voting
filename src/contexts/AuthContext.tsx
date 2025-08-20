@@ -2,9 +2,19 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 
+export interface Profile {
+  id: string;
+  role: 'national' | 'province' | 'region' | 'branch' | 'vd' | 'member';
+  province?: string;
+  region?: string;
+  branch?: string;
+  vd?: string;
+}
+
 type AuthContextType = {
   session: Session | null;
   user: User | null;
+  profile: Profile | null;
   loading: boolean;
   signInWithOtp: (email: string) => Promise<{ error: string | null }>;
   signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
@@ -23,26 +33,43 @@ export const useAuth = (): AuthContextType => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let cancelled = false;
-    const init = async () => {
+    const fetchSessionAndProfile = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (cancelled) return;
       setSession(session);
       setUser(session?.user ?? null);
+      if (session?.user) {
+        const { data: userProfile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        setProfile(userProfile);
+      }
       setLoading(false);
     };
-    init();
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    fetchSessionAndProfile();
+
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+      if (session?.user) {
+        const { data: userProfile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        setProfile(userProfile);
+      } else {
+        setProfile(null);
+      }
     });
 
     return () => {
-      cancelled = true;
       listener.subscription.unsubscribe();
     };
   }, []);
@@ -50,6 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const value = useMemo<AuthContextType>(() => ({
     session,
     user,
+    profile,
     loading,
     signInWithOtp: async (email: string) => {
       const { error } = await supabase.auth.signInWithOtp({ email });
