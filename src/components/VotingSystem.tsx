@@ -19,6 +19,9 @@ import {
   Loader2,
   AlertTriangle
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { VoteResultsDialog } from './VoteResultsDialog';
+import { Vote as VoteType } from '@/hooks/useVotes';
 
 const VotingSystem: React.FC = () => {
   const {
@@ -27,8 +30,12 @@ const VotingSystem: React.FC = () => {
     loading,
     error,
     createVote: createVoteInDb,
+    castVote,
   } = useVotes();
+  const { toast } = useToast();
   const [newVote, setNewVote] = useState({ title: '', description: '', options: ['', ''], level: 'branch' as const, startDate: '', endDate: '' });
+  const [castingVote, setCastingVote] = useState<string | null>(null);
+  const [viewingResults, setViewingResults] = useState<VoteType | null>(null);
 
   const addOption = () => {
     setNewVote(prev => ({
@@ -50,6 +57,25 @@ const VotingSystem: React.FC = () => {
       status: 'pending', // Or determine status based on dates
     });
     setNewVote({ title: '', description: '', options: ['', ''], level: 'branch', startDate: '', endDate: '' });
+  };
+
+  const handleCastVote = async (voteId: string, optionId: string) => {
+    setCastingVote(optionId);
+    try {
+      await castVote(voteId, optionId);
+      toast({
+        title: 'Vote Cast Successfully',
+        description: 'Your vote has been recorded.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error Casting Vote',
+        description: (error as Error).message,
+        variant: 'destructive',
+      });
+    } finally {
+      setCastingVote(null);
+    }
   };
 
   return (
@@ -106,14 +132,27 @@ const VotingSystem: React.FC = () => {
                     <div className="space-y-2">
                       {vote.options.map((option) => (
                         <div key={option.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                          <span className="font-medium">{option.text}</span>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm">{option.votes} votes</span>
-                            <Progress
-                              value={(option.votes / vote.votedCount) * 100}
-                              className="w-16 h-2"
-                            />
+                          <div>
+                            <span className="font-medium">{option.text}</span>
+                            <div className="flex items-center space-x-2 text-sm text-gray-500">
+                              <span>{option.votes} votes</span>
+                              <Progress
+                                value={(option.votes / (vote.votedCount || 1)) * 100}
+                                className="w-16 h-2"
+                              />
+                            </div>
                           </div>
+                          <Button
+                            size="sm"
+                            onClick={() => handleCastVote(vote.id, option.id)}
+                            disabled={castingVote !== null}
+                          >
+                            {castingVote === option.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              'Vote'
+                            )}
+                          </Button>
                         </div>
                       ))}
                     </div>
@@ -169,7 +208,7 @@ const VotingSystem: React.FC = () => {
                       </p>
                     </div>
 
-                    <Button size="sm" variant="outline" className="w-full">
+                    <Button size="sm" variant="outline" className="w-full" onClick={() => setViewingResults(vote)}>
                       <BarChart3 className="h-4 w-4 mr-1" />
                       View Full Results
                     </Button>
@@ -255,6 +294,11 @@ const VotingSystem: React.FC = () => {
           </Card>
         </TabsContent>
       </Tabs>
+      <VoteResultsDialog
+        isOpen={!!viewingResults}
+        onClose={() => setViewingResults(null)}
+        vote={viewingResults}
+      />
     </div>
   );
 };

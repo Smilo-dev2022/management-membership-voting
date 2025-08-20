@@ -102,12 +102,55 @@ export const useVotes = () => {
     fetchVotes();
   }, [fetchVotes]);
 
+  const castVote = async (voteId: string, optionId: string) => {
+    // This function assumes an RPC function named `cast_vote` exists in Supabase
+    // which handles the transaction of checking for duplicate votes,
+    // and incrementing the vote counts.
+    //
+    // Example SQL for the RPC function:
+    // CREATE FUNCTION cast_vote(vote_id_in uuid, option_id_in uuid)
+    // RETURNS void AS $$
+    // DECLARE
+    //   current_user_id uuid := auth.uid();
+    // BEGIN
+    //   -- Check for duplicate vote
+    //   IF EXISTS (SELECT 1 FROM user_votes WHERE user_id = current_user_id AND vote_id = vote_id_in) THEN
+    //     RAISE EXCEPTION 'User has already voted.';
+    //   END IF;
+    //
+    //   -- Record the vote
+    //   INSERT INTO user_votes(user_id, vote_id) VALUES(current_user_id, vote_id_in);
+    //
+    //   -- Increment option count
+    //   UPDATE vote_options SET votes = votes + 1 WHERE id = option_id_in;
+    //
+    //   -- Increment total voted count
+    //   UPDATE votes SET voted_count = voted_count + 1 WHERE id = vote_id_in;
+    // END;
+    // $$ LANGUAGE plpgsql;
+
+    try {
+      const { error } = await supabase.rpc('cast_vote', {
+        vote_id_in: voteId,
+        option_id_in: optionId
+      });
+
+      if (error) throw error;
+
+      await fetchVotes();
+    } catch (err) {
+      console.error(err);
+      throw new Error(err instanceof Error ? err.message : 'Failed to cast vote');
+    }
+  };
+
   return {
     activeVotes,
     completedVotes,
     loading,
     error,
     fetchVotes,
-    createVote
+    createVote,
+    castVote
   };
 };
