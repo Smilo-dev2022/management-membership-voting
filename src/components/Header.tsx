@@ -14,14 +14,14 @@ const Header: React.FC<HeaderProps> = ({ user }) => {
   const { toggleSidebar } = useAppContext();
 
   return (
-    <header className="bg-green-600 text-white shadow-lg">
+    <header className="bg-[hsl(var(--primary))] text-white shadow-lg">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center space-x-4">
           <Button
             variant="ghost"
             size="sm"
             onClick={toggleSidebar}
-            className="text-white hover:bg-green-700"
+            className="text-white hover:opacity-90"
           >
             <Menu className="h-5 w-5" />
           </Button>
@@ -34,7 +34,7 @@ const Header: React.FC<HeaderProps> = ({ user }) => {
         </div>
         
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="sm" className="text-white hover:bg-green-700">
+          <Button variant="ghost" size="sm" className="text-white hover:opacity-90">
             <Bell className="h-5 w-5" />
           </Button>
           
