@@ -1,5 +1,5 @@
 // IEC API Integration Service
-const IEC_BASE_URL = 'https://api.elections.org.za/IECGIS';
+const IEC_BASE_URL = (import.meta as any).env?.VITE_IEC_BASE_URL || 'https://api.elections.org.za/IECGIS';
 
 export interface VotingDistrict {
   id: string;
