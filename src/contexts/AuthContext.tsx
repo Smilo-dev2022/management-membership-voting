@@ -4,6 +4,11 @@ import { supabase } from '@/lib/supabase';
 
 export interface Profile {
   id: string;
+  full_name: string;
+  id_number?: string;
+  passport_number?: string;
+  phone?: string;
+  address?: string;
   role: 'national' | 'province' | 'region' | 'branch' | 'vd' | 'member';
   province?: string;
   region?: string;
@@ -18,7 +23,7 @@ type AuthContextType = {
   loading: boolean;
   signInWithOtp: (email: string) => Promise<{ error: string | null }>;
   signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string, profileData: Omit<Profile, 'id' | 'role'>) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 };
 
@@ -87,9 +92,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         return { error: error?.message ?? null };
     },
-    signUp: async (email, password) => {
-        const { error } = await supabase.auth.signUp({ email, password });
-        return { error: error?.message ?? null };
+    signUp: async (email, password, profileData) => {
+      // Step 1: Create the user in the auth schema
+      const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
+
+      if (authError) {
+        return { error: authError.message };
+      }
+      if (!authData.user) {
+        return { error: 'Sign up successful, but no user data returned.' };
+      }
+
+      // Step 2: Create the profile in the public schema
+      const { error: profileError } = await supabase.from('profiles').insert({
+        id: authData.user.id,
+        ...profileData,
+        role: 'member', // Default role for new sign-ups
+      });
+
+      if (profileError) {
+        // This is a tricky situation. The user exists in auth, but not in public.
+        // A robust solution might involve a database trigger or cleanup function.
+        // For now, we'll return the profile error.
+        console.error('Error creating profile for new user:', profileError);
+        return { error: `User created, but profile could not be saved: ${profileError.message}` };
+      }
+
+      return { error: null };
     },
     signOut: async () => {
       await supabase.auth.signOut();
