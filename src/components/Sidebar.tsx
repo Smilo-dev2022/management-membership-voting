@@ -35,7 +35,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, onNavigate, currentPage }) 
     ];
 
     // Add role-specific items
-    const roleSpecificItems = [];
+    const roleSpecificItems: Array<{ id: string; label: string; icon: any }> = [];
     if (userRole === 'national') {
       roleSpecificItems.push(
         { id: 'analytics', label: 'National Analytics', icon: BarChart3 },
@@ -55,7 +55,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, onNavigate, currentPage }) 
   if (!sidebarOpen) return null;
 
   return (
-    <aside className="bg-gray-800 text-white w-64 min-h-screen p-4">
+    <aside className="bg-[hsl(var(--accent))] text-white w-64 min-h-screen p-4">
       <nav className="space-y-2">
         {menuItems.map((item) => {
           const Icon = item.icon;
@@ -63,7 +63,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, onNavigate, currentPage }) 
             <Button
               key={item.id}
               variant={currentPage === item.id ? "secondary" : "ghost"}
-              className="w-full justify-start text-white hover:bg-gray-700"
+              className="w-full justify-start text-white hover:bg-yellow-600"
               onClick={() => onNavigate(item.id)}
             >
               <Icon className="h-4 w-4 mr-2" />
@@ -77,3 +77,4 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, onNavigate, currentPage }) 
 };
 
 export default Sidebar;
+
