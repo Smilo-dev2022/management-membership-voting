@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { VoteResultsDialog } from './VoteResultsDialog';
+import { AuditTrail } from './AuditTrail';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Vote as VoteType } from '@/hooks/useVotes';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -49,6 +51,7 @@ const VotingSystem: React.FC = () => {
   });
   const [castingVote, setCastingVote] = useState<string | null>(null);
   const [viewingResults, setViewingResults] = useState<VoteType | null>(null);
+  const [viewingAuditTrail, setViewingAuditTrail] = useState<string | null>(null);
 
   const addOption = () => {
     setNewVote(prev => ({
@@ -206,7 +209,7 @@ const VotingSystem: React.FC = () => {
                         <BarChart3 className="h-4 w-4 mr-1" />
                         View Results
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => setViewingAuditTrail(vote.id)}>
                         <Shield className="h-4 w-4 mr-1" />
                         Audit Trail
                       </Button>
@@ -358,6 +361,14 @@ const VotingSystem: React.FC = () => {
         onClose={() => setViewingResults(null)}
         vote={viewingResults}
       />
+      <Dialog open={!!viewingAuditTrail} onOpenChange={(isOpen) => !isOpen && setViewingAuditTrail(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Audit Trail</DialogTitle>
+          </DialogHeader>
+          {viewingAuditTrail && <AuditTrail targetId={viewingAuditTrail} />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

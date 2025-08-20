@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useAuditLog } from './useAuditLog';
 
 export interface VoteOption {
   id: string;
@@ -25,6 +26,7 @@ export interface Vote {
 }
 
 export const useVotes = () => {
+  const { createLog } = useAuditLog();
   const [activeVotes, setActiveVotes] = useState<Vote[]>([]);
   const [completedVotes, setCompletedVotes] = useState<Vote[]>([]);
   const [loading, setLoading] = useState(false);
@@ -91,7 +93,15 @@ export const useVotes = () => {
 
       if (optionsError) throw optionsError;
 
-      // 3. Refresh the votes list
+      // 3. Create audit log entry
+      createLog({
+        action: 'vote_created',
+        target_type: 'vote',
+        target_id: vote.id,
+        details: { title: vote.title, level: vote.level },
+      });
+
+      // 4. Refresh the votes list
       await fetchVotes();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create vote');
@@ -145,6 +155,11 @@ export const useVotes = () => {
     //
     //   -- Increment total voted count
     //   UPDATE votes SET voted_count = voted_count + 1 WHERE id = vote_id_in;
+    //
+    //   -- Create audit log for the vote cast
+    //   INSERT INTO audit_log(user_id, action, target_type, target_id, details)
+    //   VALUES(current_user_id, 'vote_cast', 'vote', vote_id_in, json_build_object('option_id', option_id_in));
+    //
     // END;
     // $$ LANGUAGE plpgsql SECURITY DEFINER;
 
