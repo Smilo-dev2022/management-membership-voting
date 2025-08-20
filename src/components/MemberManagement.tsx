@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import Papa from 'papaparse';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, QrCode } from 'lucide-react';
@@ -36,13 +37,15 @@ interface Member {
 }
 
 const MemberManagement: React.FC = () => {
-  const { members, loading, fetchMembers, updateMember, deleteMember, bulkUpdateStatus, bulkDelete } = useMembers();
+  const { members, loading, fetchMembers, updateMember, deleteMember, bulkUpdateStatus, bulkDelete, bulkCreateMembers } = useMembers();
   const { toast } = useToast();
   
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [showQRDialog, setShowQRDialog] = useState(false);
   const [qrMember, setQRMember] = useState<Member | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSearch = (filters: SearchFilters) => {
     fetchMembers(filters);
@@ -123,11 +126,57 @@ const MemberManagement: React.FC = () => {
   };
 
   const handleImport = (file: File) => {
-    toast({ title: "Info", description: "Import functionality coming soon" });
+    if (!file) return;
+    setIsImporting(true);
+    toast({ title: "Info", description: "Importing members..." });
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        try {
+          const newMembers = results.data.map((row: any) => ({
+            name: row.Name,
+            email: row.Email,
+            phone: row.Phone,
+            role: row.Role,
+            province: row.Province,
+            branch: row.Branch,
+            status: row.Status || 'pending',
+          }));
+
+          await bulkCreateMembers(newMembers);
+          toast({ title: "Success", description: `Successfully imported ${newMembers.length} members.` });
+        } catch (error) {
+          toast({ title: "Error", description: "Failed to import members.", variant: "destructive" });
+        } finally {
+          setIsImporting(false);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+        }
+      },
+      error: (error) => {
+        toast({ title: "Error", description: `CSV parsing error: ${error.message}`, variant: "destructive" });
+        setIsImporting(false);
+      }
+    });
+  };
+
+  const triggerImport = () => {
+    fileInputRef.current?.click();
   };
 
   return (
     <div className="p-6 space-y-6">
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept=".csv"
+        onChange={(e) => e.target.files && handleImport(e.target.files[0])}
+      />
+
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Member Management</h2>
         <Button>
@@ -145,7 +194,8 @@ const MemberManagement: React.FC = () => {
         onBulkStatusChange={handleBulkStatusChange}
         onBulkDelete={handleBulkDelete}
         onExportSelected={handleExport}
-        onImportMembers={handleImport}
+        onImportMembers={triggerImport}
+        isImporting={isImporting}
       />
 
       <MemberList

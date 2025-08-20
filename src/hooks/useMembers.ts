@@ -195,6 +195,26 @@ export const useMembers = () => {
     }
   };
 
+  const bulkCreateMembers = async (newMembers: Omit<Member, 'id' | 'membershipNumber' | 'joinDate'>[]) => {
+    try {
+      const membersToInsert = newMembers.map(member => ({
+        ...member,
+        membership_number: generateMembershipNumber(member.province),
+        id_number: member.idNumber,
+      }));
+
+      const { error } = await supabase
+        .from('members')
+        .insert(membersToInsert);
+
+      if (error) throw error;
+
+      await fetchMembers();
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : 'Failed to import members');
+    }
+  };
+
   useEffect(() => {
     fetchMembers();
   }, []);
@@ -208,6 +228,7 @@ export const useMembers = () => {
     updateMember,
     deleteMember,
     bulkUpdateStatus,
-    bulkDelete
+    bulkDelete,
+    bulkCreateMembers
   };
 };

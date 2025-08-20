@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import NationalDashboard from './dashboards/NationalDashboard';
 import ProvinceDashboard from './dashboards/ProvinceDashboard';
 import RegionDashboard from './dashboards/RegionDashboard';
@@ -12,9 +13,10 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
+  const navigate = useNavigate();
+
   const handleNavigate = (level: string, id: string) => {
-    console.log(`Navigating to ${level}:`, id);
-    // TODO: Implement navigation logic
+    navigate(`/${level}/${id}`);
   };
 
   const renderDashboard = () => {

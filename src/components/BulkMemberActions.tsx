@@ -14,7 +14,8 @@ interface BulkMemberActionsProps {
   onBulkStatusChange: (memberIds: string[], status: string) => void;
   onBulkDelete: (memberIds: string[]) => void;
   onExportSelected: (memberIds: string[]) => void;
-  onImportMembers: (file: File) => void;
+  onImportMembers: () => void;
+  isImporting?: boolean;
 }
 
 const BulkMemberActions: React.FC<BulkMemberActionsProps> = ({
@@ -24,18 +25,11 @@ const BulkMemberActions: React.FC<BulkMemberActionsProps> = ({
   onBulkStatusChange,
   onBulkDelete,
   onExportSelected,
-  onImportMembers
+  onImportMembers,
+  isImporting
 }) => {
   const [bulkAction, setBulkAction] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      onImportMembers(file);
-      event.target.value = '';
-    }
-  };
 
   const executeBulkAction = () => {
     if (!bulkAction || selectedMembers.length === 0) return;
@@ -139,17 +133,9 @@ const BulkMemberActions: React.FC<BulkMemberActionsProps> = ({
             Export All
           </Button>
           
-          <Button variant="outline" size="sm" asChild>
-            <label className="cursor-pointer">
-              <Upload className="h-4 w-4 mr-2" />
-              Import CSV
-              <input
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-            </label>
+          <Button variant="outline" size="sm" onClick={onImportMembers} disabled={isImporting}>
+            <Upload className="h-4 w-4 mr-2" />
+            {isImporting ? 'Importing...' : 'Import CSV'}
           </Button>
         </div>
 
