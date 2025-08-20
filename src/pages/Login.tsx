@@ -4,18 +4,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 const Login: React.FC = () => {
-  const { signInWithOtp } = useAuth();
+  const { signInWithPassword } = useAuth();
   const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<string | null>(null);
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setStatus(null);
-    const { error } = await signInWithOtp(email);
-    if (error) setStatus(error);
-    else setStatus('Check your email for the magic link.');
+    setError(null);
+    const { error: signInError } = await signInWithPassword(email, password);
+    if (signInError) {
+      setError(signInError);
+    }
     setLoading(false);
   };
 
@@ -43,11 +45,21 @@ const Login: React.FC = () => {
               required
             />
           </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Password</label>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+            />
+          </div>
           <Button type="submit" disabled={loading} className="w-full bg-green-600 hover:bg-green-700">
-            {loading ? 'Sending magic link…' : 'Send magic link'}
+            {loading ? 'Signing in…' : 'Sign In'}
           </Button>
-          {status && (
-            <p className="text-sm text-gray-600 text-center">{status}</p>
+          {error && (
+            <p className="text-sm text-red-600 text-center">{error}</p>
           )}
         </form>
       </div>

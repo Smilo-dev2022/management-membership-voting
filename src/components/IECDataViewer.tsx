@@ -17,6 +17,7 @@ export const IECDataViewer: React.FC = () => {
   const [selectedMunicipality, setSelectedMunicipality] = useState<string>('');
   const [selectedWard, setSelectedWard] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'districts' | 'elections'>('districts');
 
   useEffect(() => {
@@ -26,15 +27,18 @@ export const IECDataViewer: React.FC = () => {
 
   const loadProvinces = async () => {
     try {
+      setError(null);
       const data = await iecApiService.getProvinces();
       setProvinces(data);
     } catch (error) {
       console.error('Failed to load provinces:', error);
+      setError('Failed to load provinces. Please check the API connection.');
     }
   };
 
   const loadMunicipalities = async (provinceId: string) => {
     setLoading(true);
+    setError(null);
     try {
       const data = await iecApiService.getMunicipalities(provinceId);
       setMunicipalities(data);
@@ -42,6 +46,7 @@ export const IECDataViewer: React.FC = () => {
       setVotingDistricts([]);
     } catch (error) {
       console.error('Failed to load municipalities:', error);
+      setError('Failed to load municipalities.');
     } finally {
       setLoading(false);
     }
@@ -49,12 +54,14 @@ export const IECDataViewer: React.FC = () => {
 
   const loadWards = async (municipalityId: string) => {
     setLoading(true);
+    setError(null);
     try {
       const data = await iecApiService.getWards(municipalityId);
       setWards(data);
       setVotingDistricts([]);
     } catch (error) {
       console.error('Failed to load wards:', error);
+      setError('Failed to load wards.');
     } finally {
       setLoading(false);
     }
@@ -62,11 +69,13 @@ export const IECDataViewer: React.FC = () => {
 
   const loadVotingDistricts = async (wardId: string) => {
     setLoading(true);
+    setError(null);
     try {
       const data = await iecApiService.getVotingDistrictsByWard(wardId, false);
       setVotingDistricts(data);
     } catch (error) {
       console.error('Failed to load voting districts:', error);
+      setError('Failed to load voting districts.');
     } finally {
       setLoading(false);
     }
@@ -74,15 +83,22 @@ export const IECDataViewer: React.FC = () => {
 
   const loadElections = async () => {
     try {
+      setError(null);
       const data = await iecApiService.getElectionInfo();
       setElections(data);
     } catch (error) {
       console.error('Failed to load elections:', error);
+      setError('Failed to load election information.');
     }
   };
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+          <p>{error}</p>
+        </div>
+      )}
       <div className="flex space-x-2 border-b">
         <Button
           variant={activeTab === 'districts' ? 'default' : 'ghost'}

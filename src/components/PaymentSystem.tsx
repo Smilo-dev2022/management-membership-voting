@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, CreditCard, Receipt, Users, TrendingUp } from 'lucide-react';
+import { DollarSign, CreditCard, Receipt, Users, TrendingUp, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 
@@ -26,31 +26,45 @@ const PaymentSystem: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'bank_transfer' | 'cash'>('card');
   const [memberName, setMemberName] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
-  const [payments, setPayments] = useState<Payment[]>([
-    {
-      id: '1',
-      memberId: 'M001',
-      memberName: 'John Doe',
-      amount: 50,
-      type: 'membership',
-      method: 'card',
-      status: 'completed',
-      date: '2024-02-01',
-      receiptNumber: 'RCP-001'
-    },
-    {
-      id: '2',
-      memberId: 'M002',
-      memberName: 'Anonymous',
-      amount: 100,
-      type: 'donation',
-      method: 'bank_transfer',
-      status: 'completed',
-      date: '2024-02-02',
-      receiptNumber: 'RCP-002'
-    }
-  ]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  const fetchPayments = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('payments')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+
+      const formattedPayments = data?.map(p => ({
+        id: p.id,
+        memberId: p.member_id,
+        memberName: p.member_name,
+        amount: p.amount,
+        type: p.type,
+        method: p.method,
+        status: p.status,
+        date: p.created_at,
+        receiptNumber: p.receipt_number
+      })) || [];
+
+      setPayments(formattedPayments);
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to fetch payments", variant: "destructive" });
+      console.error('Fetch payments error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPayments();
+  }, []);
 
   const processPayment = async () => {
     if (!amount || parseFloat(amount) < 10) {
@@ -89,13 +103,13 @@ const PaymentSystem: React.FC = () => {
         receiptNumber: data.receiptNumber
       };
 
-      setPayments([newPayment, ...payments]);
       toast({ title: "Success", description: `Payment of R${amount} processed successfully` });
       
-      // Reset form
+      // Reset form and refetch payments
       setAmount('');
       setMemberName('');
       setIsAnonymous(false);
+      fetchPayments();
     } catch (error) {
       console.error('Payment error:', error);
       toast({ title: "Error", description: "Payment processing failed", variant: "destructive" });
@@ -223,35 +237,48 @@ const PaymentSystem: React.FC = () => {
 
       {/* Recent Payments */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Receipt className="h-5 w-5" />
             Recent Payments
           </CardTitle>
+          <Button variant="ghost" size="icon" onClick={fetchPayments} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {payments.map((payment) => (
-              <div key={payment.id} className="flex items-center justify-between p-3 border rounded-lg">
-                <div>
-                  <p className="font-medium">{payment.memberName}</p>
-                  <p className="text-sm text-gray-500">
-                    {payment.type === 'membership' ? 'Membership Fee' : 'Donation'} • {payment.method}
-                  </p>
-                  <p className="text-xs text-gray-400">{payment.date}</p>
+          {loading ? (
+            <div className="flex justify-center items-center h-24">
+              <p>Loading payments...</p>
+            </div>
+          ) : payments.length === 0 ? (
+            <div className="text-center text-gray-500 py-6">
+              No payments found.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {payments.map((payment) => (
+                <div key={payment.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <p className="font-medium">{payment.memberName}</p>
+                    <p className="text-sm text-gray-500">
+                      {payment.type === 'membership' ? 'Membership Fee' : 'Donation'} • {payment.method}
+                    </p>
+                    <p className="text-xs text-gray-400">{new Date(payment.date).toLocaleDateString()}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold">R{payment.amount.toFixed(2)}</p>
+                    <Badge variant={payment.status === 'completed' ? 'default' : 'secondary'}>
+                      {payment.status}
+                    </Badge>
+                    {payment.receiptNumber && (
+                      <p className="text-xs text-gray-400">{payment.receiptNumber}</p>
+                    )}
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold">R{payment.amount.toFixed(2)}</p>
-                  <Badge variant={payment.status === 'completed' ? 'default' : 'secondary'}>
-                    {payment.status}
-                  </Badge>
-                  {payment.receiptNumber && (
-                    <p className="text-xs text-gray-400">{payment.receiptNumber}</p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
