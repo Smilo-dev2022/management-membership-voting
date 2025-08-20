@@ -8,6 +8,7 @@ type AuthContextType = {
   loading: boolean;
   signInWithOtp: (email: string) => Promise<{ error: string | null }>;
   signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 };
 
@@ -56,6 +57,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     },
     signInWithPassword: async (email, password) => {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
+        return { error: error?.message ?? null };
+    },
+    signUp: async (email, password) => {
+        const { error } = await supabase.auth.signUp({ email, password });
         return { error: error?.message ?? null };
     },
     signOut: async () => {

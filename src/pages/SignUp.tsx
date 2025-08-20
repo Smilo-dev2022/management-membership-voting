@@ -4,20 +4,24 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Link } from 'react-router-dom';
 
-const Login: React.FC = () => {
-  const { signInWithPassword } = useAuth();
+const SignUp: React.FC = () => {
+  const { signUp } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const { error: signInError } = await signInWithPassword(email, password);
-    if (signInError) {
-      setError(signInError);
+    setMessage(null);
+    const { error: signUpError } = await signUp(email, password);
+    if (signUpError) {
+      setError(signUpError);
+    } else {
+      setMessage('Success! Please check your email to confirm your account.');
     }
     setLoading(false);
   };
@@ -31,7 +35,7 @@ const Login: React.FC = () => {
           </div>
           <div>
             <h1 className="text-xl font-bold">uMkhonto weSizwe Party</h1>
-            <p className="text-sm text-gray-500">Management System</p>
+            <p className="text-sm text-gray-500">Create a New Account</p>
           </div>
         </div>
 
@@ -57,18 +61,21 @@ const Login: React.FC = () => {
             />
           </div>
           <Button type="submit" disabled={loading} className="w-full bg-green-600 hover:bg-green-700">
-            {loading ? 'Signing in…' : 'Sign In'}
+            {loading ? 'Creating account…' : 'Create Account'}
           </Button>
           {error && (
             <p className="text-sm text-red-600 text-center">{error}</p>
+          )}
+          {message && (
+            <p className="text-sm text-green-600 text-center">{message}</p>
           )}
         </form>
 
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
-            Don't have an account?{' '}
-            <Link to="/signup" className="font-medium text-green-700 hover:underline">
-              Sign Up
+            Already have an account?{' '}
+            <Link to="/login" className="font-medium text-green-700 hover:underline">
+              Sign In
             </Link>
           </p>
         </div>
@@ -77,5 +84,4 @@ const Login: React.FC = () => {
   );
 };
 
-export default Login;
-
+export default SignUp;
