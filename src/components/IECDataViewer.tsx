@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, MapPin, Calendar, Search } from 'lucide-react';
+import { Loader2, MapPin, Calendar, Search, Map } from 'lucide-react';
 import { iecApiService, VotingDistrict, ElectionInfo } from '@/services/iecApi';
+import VotingStationList from './VotingStationList';
 
 export const IECDataViewer: React.FC = () => {
   const [provinces, setProvinces] = useState<any[]>([]);
@@ -18,7 +19,7 @@ export const IECDataViewer: React.FC = () => {
   const [selectedWard, setSelectedWard] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'districts' | 'elections'>('districts');
+  const [activeTab, setActiveTab] = useState<'districts' | 'elections' | 'stations'>('districts');
 
   useEffect(() => {
     loadProvinces();
@@ -115,6 +116,14 @@ export const IECDataViewer: React.FC = () => {
         >
           <Calendar className="h-4 w-4" />
           Elections
+        </Button>
+        <Button
+          variant={activeTab === 'stations' ? 'default' : 'ghost'}
+          onClick={() => setActiveTab('stations')}
+          className="flex items-center gap-2"
+        >
+          <Map className="h-4 w-4" />
+          Voting Stations
         </Button>
       </div>
 
@@ -218,6 +227,20 @@ export const IECDataViewer: React.FC = () => {
                 </div>
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === 'stations' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Map className="h-5 w-5" />
+              Voting Stations
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <VotingStationList />
           </CardContent>
         </Card>
       )}

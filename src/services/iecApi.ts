@@ -26,6 +26,43 @@ export interface ElectionInfo {
   status: string;
 }
 
+export interface Province {
+  ProvinceID: number;
+  Province: string;
+}
+
+export interface Municipality {
+  MunicipalityID: number;
+  Municipality: string;
+}
+
+export interface VotingStation {
+  Name: string;
+  Delimitation: {
+    ProvinceID: number;
+    Province: string;
+    MunicipalityID: number;
+    Municipality: string;
+    WardID: number;
+    VDNumber: number;
+  };
+  Location: {
+    Town: string;
+    Suburb: string;
+    Street: string;
+    Latitude: number;
+    Longitude: number;
+    ProvinceID: number;
+    Province: string;
+    MunicipalityID: number;
+    Municipality: string;
+    WardID: number;
+    VDNumber: number;
+    VotingDistrict: string;
+    VDAddress: string;
+  };
+}
+
 class IECApiService {
   private async fetchFromIEC(endpoint: string): Promise<any> {
     try {
@@ -45,11 +82,11 @@ class IECApiService {
     return this.fetchFromIEC(endpoint);
   }
 
-  async getProvinces(): Promise<any[]> {
+  async getProvinces(): Promise<Province[]> {
     return this.fetchFromIEC('/api/Provinces');
   }
 
-  async getMunicipalities(provinceId?: string): Promise<any[]> {
+  async getMunicipalities(provinceId?: string): Promise<Municipality[]> {
     const endpoint = provinceId ? `/api/Municipalities?ProvinceID=${provinceId}` : '/api/Municipalities';
     return this.fetchFromIEC(endpoint);
   }
@@ -61,6 +98,11 @@ class IECApiService {
 
   async getElectionInfo(): Promise<ElectionInfo[]> {
     return this.fetchFromIEC('/api/Elections');
+  }
+
+  async getVotingStations(electoralEventID: string): Promise<VotingStation[]> {
+    const endpoint = `/api/v1/VotingStations?ElectoralEventID=${electoralEventID}`;
+    return this.fetchFromIEC(endpoint);
   }
 }
 
