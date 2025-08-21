@@ -9,6 +9,7 @@ import { iecApiService, VotingDistrict, ElectionInfo } from '@/services/iecApi';
 import VotingStationList from './VotingStationList';
 import FindStationByLocation from './FindStationByLocation';
 import FindStationByVDNumber from './FindStationByVDNumber';
+import ElectoralEventList from './ElectoralEventList';
 
 export const IECDataViewer: React.FC = () => {
   const [provinces, setProvinces] = useState<any[]>([]);
@@ -292,34 +293,47 @@ export const IECDataViewer: React.FC = () => {
       )}
 
       {activeTab === 'elections' && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Election Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {elections.map((election) => (
-                <Card key={election.id} className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-semibold">{election.name}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Date: {new Date(election.date).toLocaleDateString()}
-                      </p>
-                      <p className="text-sm text-muted-foreground">Type: {election.type}</p>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Electoral Event Types
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ElectoralEventList />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Specific Election Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {elections.map((election) => (
+                  <Card key={election.id} className="p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-semibold">{election.name}</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Date: {new Date(election.date).toLocaleDateString()}
+                        </p>
+                        <p className="text-sm text-muted-foreground">Type: {election.type}</p>
+                      </div>
+                      <Badge variant={election.status === 'Completed' ? 'secondary' : 'default'}>
+                        {election.status}
+                      </Badge>
                     </div>
-                    <Badge variant={election.status === 'Completed' ? 'secondary' : 'default'}>
-                      {election.status}
-                    </Badge>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );
