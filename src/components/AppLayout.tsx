@@ -31,7 +31,7 @@ const AppLayout: React.FC = () => {
       case 'dashboard':
         return <Dashboard userRole={user.role} />;
       case 'members':
-        return <MemberManagement userRole={user.role} />;
+        return <MemberManagement />;
       case 'offices':
         return <OfficeNavigation onNavigate={handleNavigate} />;
       case 'communications':
