@@ -31,6 +31,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, onNavigate, currentPage }) 
       { id: 'communications', label: 'Communications', icon: MessageSquare },
       { id: 'knowledge', label: 'Knowledge Base', icon: BookOpen },
       { id: 'voting', label: 'Voting', icon: Vote },
+      { id: 'iec-data', label: 'IEC Data', icon: MapPin },
       { id: 'payments', label: 'Payments', icon: CreditCard },
     ];
 

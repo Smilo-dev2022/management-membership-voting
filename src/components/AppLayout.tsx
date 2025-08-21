@@ -12,6 +12,7 @@ import Analytics from './Analytics';
 import Settings from './Settings';
 import PaymentSystem from './PaymentSystem';
 import KnowledgeBase from './KnowledgeBase';
+import { IECDataViewer } from './IECDataViewer';
 
 const AppLayout: React.FC = () => {
   const { sidebarOpen } = useAppContext();
@@ -40,6 +41,8 @@ const AppLayout: React.FC = () => {
         return <KnowledgeBase />;
       case 'voting':
         return <VotingSystem />;
+      case 'iec-data':
+        return <div className="p-6"><IECDataViewer /></div>;
       case 'payments':
         return <PaymentSystem />;
       case 'documents':

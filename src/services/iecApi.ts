@@ -62,6 +62,11 @@ class IECApiService {
   async getElectionInfo(): Promise<ElectionInfo[]> {
     return this.fetchFromIEC('/api/Elections');
   }
+
+  async getVoterAllDetailsByVoterId(voterId: string): Promise<import('@/types/iec').VoterAllDetails> {
+    const endpoint = `/api/Voters/VoterAllDetails/VoterId/${encodeURIComponent(voterId)}`;
+    return this.fetchFromIEC(endpoint);
+  }
 }
 
 export const iecApiService = new IECApiService();
