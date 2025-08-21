@@ -10,7 +10,8 @@ import {
   BarChart3,
   Settings,
   CreditCard,
-  BookOpen
+  BookOpen,
+  Database
 } from 'lucide-react';
 import { useAppContext } from '@/contexts/AppContext';
 
@@ -30,6 +31,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, onNavigate, currentPage }) 
       { id: 'members', label: 'Members', icon: Users },
       { id: 'communications', label: 'Communications', icon: MessageSquare },
       { id: 'knowledge', label: 'Knowledge Base', icon: BookOpen },
+      { id: 'iec', label: 'IEC Data', icon: Database },
       { id: 'voting', label: 'Voting', icon: Vote },
       { id: 'payments', label: 'Payments', icon: CreditCard },
     ];
