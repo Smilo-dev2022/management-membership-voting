@@ -104,6 +104,11 @@ class IECApiService {
     const endpoint = `/api/v1/VotingStations?ElectoralEventID=${electoralEventID}`;
     return this.fetchFromIEC(endpoint);
   }
+
+  async getVotingStationByLocation(latitude: number, longitude: number): Promise<VotingStation> {
+    const endpoint = `/api/VotingStationDetails/GetVotingStationDetailsByLocation?Latitude=${latitude}&Longitude=${longitude}`;
+    return this.fetchFromIEC(endpoint);
+  }
 }
 
 export const iecApiService = new IECApiService();

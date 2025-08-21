@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, MapPin, Calendar, Search, Map } from 'lucide-react';
+import { Loader2, MapPin, Calendar, Search, Map, Compass } from 'lucide-react';
 import { iecApiService, VotingDistrict, ElectionInfo } from '@/services/iecApi';
 import VotingStationList from './VotingStationList';
+import FindStationByLocation from './FindStationByLocation';
 
 export const IECDataViewer: React.FC = () => {
   const [provinces, setProvinces] = useState<any[]>([]);
@@ -19,7 +20,7 @@ export const IECDataViewer: React.FC = () => {
   const [selectedWard, setSelectedWard] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'districts' | 'elections' | 'stations'>('districts');
+  const [activeTab, setActiveTab] = useState<'districts' | 'elections' | 'stations' | 'findByLocation'>('districts');
 
   useEffect(() => {
     loadProvinces();
@@ -125,6 +126,14 @@ export const IECDataViewer: React.FC = () => {
           <Map className="h-4 w-4" />
           Voting Stations
         </Button>
+        <Button
+          variant={activeTab === 'findByLocation' ? 'default' : 'ghost'}
+          onClick={() => setActiveTab('findByLocation')}
+          className="flex items-center gap-2"
+        >
+          <Compass className="h-4 w-4" />
+          Find by Location
+        </Button>
       </div>
 
       {activeTab === 'districts' && (
@@ -227,6 +236,20 @@ export const IECDataViewer: React.FC = () => {
                 </div>
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === 'findByLocation' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Compass className="h-5 w-5" />
+              Find Voting Station by Location
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FindStationByLocation />
           </CardContent>
         </Card>
       )}
