@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, MapPin, Calendar, Search } from 'lucide-react';
+import { Loader2, MapPin, Calendar, Search, IdCard } from 'lucide-react';
 import { iecApiService, VotingDistrict, ElectionInfo } from '@/services/iecApi';
+import type { VoterExt } from '@/types/iec';
 
 export const IECDataViewer: React.FC = () => {
   const [provinces, setProvinces] = useState<any[]>([]);
@@ -18,7 +19,9 @@ export const IECDataViewer: React.FC = () => {
   const [selectedWard, setSelectedWard] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'districts' | 'elections'>('districts');
+  const [activeTab, setActiveTab] = useState<'districts' | 'elections' | 'voter'>('districts');
+  const [idInput, setIdInput] = useState<string>('');
+  const [voterResult, setVoterResult] = useState<VoterExt | null>(null);
 
   useEffect(() => {
     loadProvinces();
@@ -92,6 +95,25 @@ export const IECDataViewer: React.FC = () => {
     }
   };
 
+  const lookupVoter = async () => {
+    if (!idInput || idInput.trim().length === 0) {
+      setError('Please enter an ID number');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setVoterResult(null);
+    try {
+      const data = await iecApiService.getVoterExtByIdNumber(idInput.trim());
+      setVoterResult(data);
+    } catch (error) {
+      console.error('Failed to lookup voter:', error);
+      setError('Failed to lookup voter. Ensure the ID is valid and try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {error && (
@@ -115,6 +137,14 @@ export const IECDataViewer: React.FC = () => {
         >
           <Calendar className="h-4 w-4" />
           Elections
+        </Button>
+        <Button
+          variant={activeTab === 'voter' ? 'default' : 'ghost'}
+          onClick={() => setActiveTab('voter')}
+          className="flex items-center gap-2"
+        >
+          <IdCard className="h-4 w-4" />
+          Voter Lookup
         </Button>
       </div>
 
@@ -249,6 +279,84 @@ export const IECDataViewer: React.FC = () => {
                 </Card>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === 'voter' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <IdCard className="h-5 w-5" />
+              Voter Lookup by ID Number
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Enter SA ID number"
+                value={idInput}
+                onChange={(e) => setIdInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') lookupVoter();
+                }}
+              />
+              <Button onClick={lookupVoter} disabled={loading} className="flex items-center gap-2">
+                <Search className="h-4 w-4" />
+                Lookup
+              </Button>
+            </div>
+
+            {loading && (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span className="ml-2">Looking up voter...</span>
+              </div>
+            )}
+
+            {voterResult && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card className="p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-semibold">Voter</h4>
+                        <p className="text-sm text-muted-foreground">ID: {voterResult.Id}</p>
+                      </div>
+                      <Badge variant={voterResult.bRegistered ? 'default' : 'secondary'}>
+                        {voterResult.VoterStatus}
+                      </Badge>
+                    </div>
+                  </Card>
+
+                  <Card className="p-4">
+                    <h4 className="font-semibold mb-2">Voting Station</h4>
+                    <div className="text-sm">
+                      <div className="font-medium">{voterResult.VotingStation?.Name}</div>
+                      <div>{voterResult.VotingStation?.Location?.VDAddress}</div>
+                      <div>
+                        {voterResult.VotingStation?.Location?.Town}, {voterResult.VotingStation?.Location?.Suburb}
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+
+                <Card className="p-4">
+                  <h4 className="font-semibold mb-2">Delimitation</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                    <div>Province: {voterResult.VotingStation?.Delimitation?.Province}</div>
+                    <div>Municipality: {voterResult.VotingStation?.Delimitation?.Municipality}</div>
+                    <div>Ward ID: {voterResult.VotingStation?.Delimitation?.WardID}</div>
+                    <div>VD Number: {voterResult.VotingStation?.Delimitation?.VDNumber}</div>
+                  </div>
+                </Card>
+
+                <div className="text-xs text-muted-foreground">
+                  <span>VD Portion Lost: {String(voterResult.bVDPortionLost)}</span>
+                  <span className="ml-4">Send Address Msg: {String(voterResult.bSendAddressMsg)}</span>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
