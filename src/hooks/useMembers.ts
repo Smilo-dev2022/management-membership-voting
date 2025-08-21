@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { generateMembershipNumber } from '@/lib/membershipUtils';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Member {
   id: string;
@@ -28,11 +29,17 @@ interface SearchFilters {
 }
 
 export const useMembers = () => {
+  const { userProfile } = useAuth();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchMembers = async (filters?: SearchFilters) => {
+  const fetchMembers = useCallback(async (filters?: SearchFilters) => {
+    if (!userProfile) {
+      setMembers([]);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     
@@ -42,6 +49,31 @@ export const useMembers = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
+      // Apply role-based security filters
+      switch (userProfile.role) {
+        case 'provincial_admin':
+          query = query.eq('province_id', userProfile.province_id);
+          break;
+        case 'regional_admin':
+          query = query.eq('region_id', userProfile.region_id);
+          break;
+        case 'branch_admin':
+          query = query.eq('branch_id', userProfile.branch_id);
+          break;
+        case 'vd_manager':
+          query = query.eq('vd_id', userProfile.vd_id);
+          break;
+        case 'national_admin':
+          // No filter needed for national admin
+          break;
+        default:
+          // For any other role, including 'member', return no members
+          setMembers([]);
+          setLoading(false);
+          return;
+      }
+
+      // Apply user-_initiated search filters
       if (filters?.query) {
         query = query.or(`name.ilike.%${filters.query}%,email.ilike.%${filters.query}%,membership_number.ilike.%${filters.query}%`);
       }
@@ -89,7 +121,7 @@ export const useMembers = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userProfile]);
 
   const createMember = async (memberData: Omit<Member, 'id' | 'membershipNumber' | 'joinDate'>) => {
     try {
@@ -216,8 +248,10 @@ export const useMembers = () => {
   };
 
   useEffect(() => {
-    fetchMembers();
-  }, []);
+    if (userProfile) {
+      fetchMembers();
+    }
+  }, [userProfile, fetchMembers]);
 
   return {
     members,
