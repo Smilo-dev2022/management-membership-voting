@@ -17,8 +17,10 @@ import {
   BarChart3,
   Shield,
   Loader2,
-  AlertTriangle
+  AlertTriangle,
+  Search
 } from 'lucide-react';
+import { iecApiService, VoterStatusResponse } from '@/services/iecApi';
 
 const VotingSystem: React.FC = () => {
   const {
@@ -29,6 +31,10 @@ const VotingSystem: React.FC = () => {
     createVote: createVoteInDb,
   } = useVotes();
   const [newVote, setNewVote] = useState({ title: '', description: '', options: ['', ''], level: 'branch' as const, startDate: '', endDate: '' });
+  const [voterIdInput, setVoterIdInput] = useState('');
+  const [voterLoading, setVoterLoading] = useState(false);
+  const [voterError, setVoterError] = useState<string | null>(null);
+  const [voterData, setVoterData] = useState<VoterStatusResponse | null>(null);
 
   const addOption = () => {
     setNewVote(prev => ({
@@ -52,6 +58,25 @@ const VotingSystem: React.FC = () => {
     setNewVote({ title: '', description: '', options: ['', ''], level: 'branch', startDate: '', endDate: '' });
   };
 
+  const checkVoterStatus = async () => {
+    setVoterError(null);
+    setVoterData(null);
+    const trimmed = voterIdInput.trim();
+    if (!trimmed) {
+      setVoterError('Please enter an ID');
+      return;
+    }
+    try {
+      setVoterLoading(true);
+      const res = await iecApiService.getVoterStatus(trimmed);
+      setVoterData(res);
+    } catch (err: any) {
+      setVoterError(err?.message || 'Failed to fetch voter status');
+    } finally {
+      setVoterLoading(false);
+    }
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -70,6 +95,10 @@ const VotingSystem: React.FC = () => {
           <TabsTrigger value="active">Active Votes</TabsTrigger>
           <TabsTrigger value="completed">Completed</TabsTrigger>
           <TabsTrigger value="create">Create New</TabsTrigger>
+          <TabsTrigger value="voter-status" className="flex items-center gap-1">
+            <Search className="h-4 w-4" />
+            Voter Status
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="active" className="space-y-4">
@@ -251,6 +280,72 @@ const VotingSystem: React.FC = () => {
                   Schedule for Later
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="voter-status" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Search className="h-5 w-5" />
+                Check Voter Registration Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {voterError && (
+                <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                  {voterError}
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder="Enter ID number"
+                  value={voterIdInput}
+                  onChange={(e) => setVoterIdInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') checkVoterStatus();
+                  }}
+                />
+                <Button onClick={checkVoterStatus} disabled={voterLoading}>
+                  {voterLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Check'}
+                </Button>
+              </div>
+
+              {voterData && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">ID</p>
+                      <p className="font-medium">{voterData.Id}</p>
+                    </div>
+                    <Badge variant={voterData.bRegistered ? 'default' : 'secondary'}>
+                      {voterData.VoterStatus}
+                    </Badge>
+                  </div>
+                  {voterData.VotingStation && (
+                    <Card className="p-3">
+                      <div className="font-semibold">Voting Station</div>
+                      <div className="text-sm">{voterData.VotingStation.Name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {voterData.VotingStation.Location?.VDAddress}
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm mt-2">
+                        <div>
+                          <span className="text-muted-foreground">Province:</span> {voterData.VotingStation.Delimitation?.Province}
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Municipality:</span> {voterData.VotingStation.Delimitation?.Municipality}
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Ward:</span> {voterData.VotingStation.Delimitation?.WardID}
+                        </div>
+                      </div>
+                    </Card>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
