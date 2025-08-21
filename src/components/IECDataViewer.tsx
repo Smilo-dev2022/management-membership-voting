@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, MapPin, Calendar, Search } from 'lucide-react';
+import { Loader2, MapPin, Calendar, Search, IdCard } from 'lucide-react';
 import { iecApiService, VotingDistrict, ElectionInfo } from '@/services/iecApi';
+import type { VoterAllDetails } from '@/types';
 
 export const IECDataViewer: React.FC = () => {
   const [provinces, setProvinces] = useState<any[]>([]);
@@ -18,7 +19,9 @@ export const IECDataViewer: React.FC = () => {
   const [selectedWard, setSelectedWard] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'districts' | 'elections'>('districts');
+  const [activeTab, setActiveTab] = useState<'districts' | 'elections' | 'voter'>('districts');
+  const [voterIdInput, setVoterIdInput] = useState<string>('');
+  const [voterDetails, setVoterDetails] = useState<VoterAllDetails | null>(null);
 
   useEffect(() => {
     loadProvinces();
@@ -92,6 +95,25 @@ export const IECDataViewer: React.FC = () => {
     }
   };
 
+  const lookupVoterDetails = async () => {
+    if (!voterIdInput) {
+      setError('Please enter an ID number');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await iecApiService.getVoterAllDetails(voterIdInput);
+      setVoterDetails(data);
+    } catch (error) {
+      console.error('Failed to load voter details:', error);
+      setError('Failed to load voter details.');
+      setVoterDetails(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {error && (
@@ -115,6 +137,14 @@ export const IECDataViewer: React.FC = () => {
         >
           <Calendar className="h-4 w-4" />
           Elections
+        </Button>
+        <Button
+          variant={activeTab === 'voter' ? 'default' : 'ghost'}
+          onClick={() => setActiveTab('voter')}
+          className="flex items-center gap-2"
+        >
+          <IdCard className="h-4 w-4" />
+          Voter Details
         </Button>
       </div>
 
@@ -249,6 +279,83 @@ export const IECDataViewer: React.FC = () => {
                 </Card>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === 'voter' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <IdCard className="h-5 w-5" />
+              Voter Details Lookup
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Enter ID number"
+                value={voterIdInput}
+                onChange={(e) => setVoterIdInput(e.target.value)}
+              />
+              <Button onClick={lookupVoterDetails} disabled={loading || !voterIdInput} className="flex items-center gap-2">
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                Search
+              </Button>
+            </div>
+
+            {voterDetails && (
+              <div className="space-y-4">
+                <Card className="p-4">
+                  <h4 className="font-semibold mb-2">Voter</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                    <div><span className="text-muted-foreground">ID:</span> {voterDetails.Voter.Id}</div>
+                    <div><span className="text-muted-foreground">Status:</span> {voterDetails.Voter.VoterStatus} (#{voterDetails.Voter.VoterStatusID})</div>
+                    <div><span className="text-muted-foreground">Registered:</span> {voterDetails.Voter.bRegistered ? 'Yes' : 'No'}</div>
+                    <div><span className="text-muted-foreground">VoterId:</span> {voterDetails.Voter.VoterId}</div>
+                    {voterDetails.Voter.VotingStation && (
+                      <div className="md:col-span-2 mt-2">
+                        <div className="font-medium">Voting Station: {voterDetails.Voter.VotingStation.Name}</div>
+                        <div className="text-muted-foreground">
+                          Ward {voterDetails.Voter.VotingStation.Delimitation.WardID}, {voterDetails.Voter.VotingStation.Delimitation.Municipality}, {voterDetails.Voter.VotingStation.Delimitation.Province}
+                        </div>
+                        <div className="text-muted-foreground">
+                          {voterDetails.Voter.VotingStation.Location.Street}, {voterDetails.Voter.VotingStation.Location.Suburb}, {voterDetails.Voter.VotingStation.Location.Town}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+
+                {voterDetails.WardCouncilor && (
+                  <Card className="p-4">
+                    <h4 className="font-semibold mb-2">Ward Councilor</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                      <div><span className="text-muted-foreground">Name:</span> {voterDetails.WardCouncilor.Name}</div>
+                      <div><span className="text-muted-foreground">Ward:</span> {voterDetails.WardCouncilor.WardID}</div>
+                      <div><span className="text-muted-foreground">Province:</span> {voterDetails.WardCouncilor.Province}</div>
+                      <div><span className="text-muted-foreground">Municipality:</span> {voterDetails.WardCouncilor.MunicipalityID}</div>
+                      {voterDetails.WardCouncilor.PartyDetail && (
+                        <div className="md:col-span-2">
+                          <div className="text-muted-foreground">Party: {voterDetails.WardCouncilor.PartyDetail.Name} ({voterDetails.WardCouncilor.PartyDetail.Abbreviation})</div>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                )}
+
+                {voterDetails.SpecialVoter && (
+                  <Card className="p-4">
+                    <h4 className="font-semibold mb-2">Special Voter</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                      <div><span className="text-muted-foreground">Status:</span> {voterDetails.SpecialVoter.SpecialVotesStatus}</div>
+                      <div><span className="text-muted-foreground">Application:</span> {voterDetails.SpecialVoter.ApplicationStatus}</div>
+                      <div><span className="text-muted-foreground">Open:</span> {voterDetails.SpecialVoter.IsOpen ? 'Yes' : 'No'}</div>
+                    </div>
+                  </Card>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
