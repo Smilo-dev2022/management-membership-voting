@@ -162,8 +162,11 @@ class IECApiService {
     return this.fetchFromIEC(endpoint);
   }
 
-  async getContestingParties(electoralEventID: string): Promise<Party[]> {
-    const endpoint = `/api/v1/ContestingParties?ElectoralEventID=${electoralEventID}`;
+  async getContestingParties(electoralEventID: string, provinceID?: number): Promise<Party[]> {
+    let endpoint = `/api/v1/ContestingParties?ElectoralEventID=${electoralEventID}`;
+    if (provinceID) {
+      endpoint += `&ProvinceID=${provinceID}`;
+    }
     return this.fetchFromIEC(endpoint);
   }
 }
