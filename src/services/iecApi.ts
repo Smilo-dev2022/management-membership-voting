@@ -47,6 +47,13 @@ export interface ElectoralEvent {
   IsActive: boolean;
 }
 
+export interface Party {
+  ID: number;
+  Name: string;
+  LogoUrl: string;
+  Abbreviation: string;
+}
+
 export interface VotingStationLocation {
   Town: string;
   Suburb: string;
@@ -152,6 +159,11 @@ class IECApiService {
     if (parentEventID) {
       endpoint += `&ParentEventID=${parentEventID}`;
     }
+    return this.fetchFromIEC(endpoint);
+  }
+
+  async getContestingParties(electoralEventID: string): Promise<Party[]> {
+    const endpoint = `/api/v1/ContestingParties?ElectoralEventID=${electoralEventID}`;
     return this.fetchFromIEC(endpoint);
   }
 }

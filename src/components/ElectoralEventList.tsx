@@ -3,6 +3,7 @@ import { iecApiService, ElectoralEventType, ElectoralEvent } from '@/services/ie
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, ChevronRight, ChevronDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import ContestingPartyList from './ContestingPartyList';
 
 export default function ElectoralEventList() {
   const [eventTypes, setEventTypes] = useState<ElectoralEventType[]>([]);
@@ -11,6 +12,7 @@ export default function ElectoralEventList() {
   const [expandedEventTypeId, setExpandedEventTypeId] = useState<number | null>(null);
   const [events, setEvents] = useState<ElectoralEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<ElectoralEvent | null>(null);
 
   useEffect(() => {
     const fetchEventTypes = async () => {
@@ -33,6 +35,7 @@ export default function ElectoralEventList() {
     if (expandedEventTypeId === eventTypeId) {
       setExpandedEventTypeId(null);
       setEvents([]);
+      setSelectedEvent(null);
       return;
     }
 
@@ -103,7 +106,7 @@ export default function ElectoralEventList() {
                           </TableHeader>
                           <TableBody>
                             {events.map(event => (
-                              <TableRow key={event.ID}>
+                              <TableRow key={event.ID} onClick={() => setSelectedEvent(event.ID === selectedEvent?.ID ? null : event)} className="cursor-pointer hover:bg-gray-100">
                                 <TableCell>{event.ID}</TableCell>
                                 <TableCell>{event.Description}</TableCell>
                                 <TableCell>
@@ -115,6 +118,13 @@ export default function ElectoralEventList() {
                             ))}
                           </TableBody>
                         </Table>
+
+                        {selectedEvent && expandedEventTypeId === eventType.ID && (
+                          <div className="mt-4 p-4 border-t">
+                            <h5 className="font-semibold mb-2">Contesting Parties for {selectedEvent.Description}:</h5>
+                            <ContestingPartyList electoralEventID={selectedEvent.ID.toString()} />
+                          </div>
+                        )}
                       </div>
                     )}
                   </TableCell>
