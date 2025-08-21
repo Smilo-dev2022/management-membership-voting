@@ -1,0 +1,14 @@
+[
+  {
+    "voter_id": "456",
+    "status_code": 404,
+    "ok": false,
+    "error": null
+  },
+  {
+    "voter_id": "123",
+    "status_code": 404,
+    "ok": false,
+    "error": null
+  }
+]
