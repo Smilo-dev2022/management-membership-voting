@@ -10,7 +10,8 @@ import {
   BarChart3,
   Settings,
   CreditCard,
-  BookOpen
+  BookOpen,
+  Shield
 } from 'lucide-react';
 import { useAppContext } from '@/contexts/AppContext';
 
@@ -32,6 +33,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, onNavigate, currentPage }) 
       { id: 'knowledge', label: 'Knowledge Base', icon: BookOpen },
       { id: 'voting', label: 'Voting', icon: Vote },
       { id: 'payments', label: 'Payments', icon: CreditCard },
+      { id: 'activity-log', label: 'Activity Log', icon: Shield },
     ];
 
     // Add role-specific items

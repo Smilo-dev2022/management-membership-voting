@@ -12,6 +12,7 @@ import Analytics from './Analytics';
 import Settings from './Settings';
 import PaymentSystem from './PaymentSystem';
 import KnowledgeBase from './KnowledgeBase';
+import ActivityLogPage from '@/pages/ActivityLogPage';
 
 const AppLayout: React.FC = () => {
   const { sidebarOpen } = useAppContext();
@@ -48,6 +49,8 @@ const AppLayout: React.FC = () => {
         return <Analytics userRole={user.role} />;
       case 'settings':
         return <Settings userRole={user.role} />;
+      case 'activity-log':
+        return <ActivityLogPage />;
       default:
         return <Dashboard userRole={user.role} />;
     }

@@ -3,111 +3,38 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Clock, User, MessageSquare, UserPlus, Vote, DollarSign } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
-
-interface ActivityLogEntry {
-  id: string;
-  userId: string;
-  userName: string;
-  action: string;
-  details: string;
-  timestamp: string;
-  level: string;
-  entityId?: string;
-}
+import { Clock, User, MessageSquare, UserPlus, Vote, DollarSign, Shield } from 'lucide-react';
+import { useAuditLog } from '@/hooks/useAuditLog';
 
 interface ActivityLogProps {
-  userRole: string;
   limit?: number;
 }
 
-const ActivityLog: React.FC<ActivityLogProps> = ({ userRole, limit = 50 }) => {
-  const [activities, setActivities] = useState<ActivityLogEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+const ActivityLog: React.FC<ActivityLogProps> = ({ limit = 10 }) => {
+  const { logs, loading, fetchLogs } = useAuditLog();
 
   useEffect(() => {
-    fetchActivities();
-  }, [userRole]);
+    // Fetch all logs and the component will slice the array
+    fetchLogs();
+  }, [fetchLogs]);
 
-  const fetchActivities = async () => {
-    try {
-      // Mock data for now - replace with real Supabase query
-      const mockActivities: ActivityLogEntry[] = [
-        {
-          id: '1',
-          userId: 'user1',
-          userName: 'John Doe',
-          action: 'member_registered',
-          details: 'Registered new member: Jane Smith',
-          timestamp: new Date(Date.now() - 300000).toISOString(),
-          level: 'branch'
-        },
-        {
-          id: '2',
-          userId: 'user2',
-          userName: 'Mary Johnson',
-          action: 'message_sent',
-          details: 'Sent broadcast message to all VDs',
-          timestamp: new Date(Date.now() - 600000).toISOString(),
-          level: 'branch'
-        },
-        {
-          id: '3',
-          userId: 'user3',
-          userName: 'David Wilson',
-          action: 'payment_processed',
-          details: 'Processed membership fee: R50.00',
-          timestamp: new Date(Date.now() - 900000).toISOString(),
-          level: 'branch'
-        },
-        {
-          id: '4',
-          userId: 'user1',
-          userName: 'John Doe',
-          action: 'vote_created',
-          details: 'Created new vote: Branch Leadership Election',
-          timestamp: new Date(Date.now() - 1200000).toISOString(),
-          level: 'branch'
-        }
-      ];
-      
-      setActivities(mockActivities.slice(0, limit));
-    } catch (error) {
-      console.error('Error fetching activities:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const activities = logs.slice(0, limit);
 
   const getActionIcon = (action: string) => {
-    switch (action) {
-      case 'member_registered':
-        return <UserPlus className="h-4 w-4" />;
-      case 'message_sent':
-        return <MessageSquare className="h-4 w-4" />;
-      case 'payment_processed':
-        return <DollarSign className="h-4 w-4" />;
-      case 'vote_created':
-        return <Vote className="h-4 w-4" />;
-      default:
-        return <User className="h-4 w-4" />;
-    }
+    if (action.includes('member')) return <UserPlus className="h-4 w-4" />;
+    if (action.includes('vote')) return <Vote className="h-4 w-4" />;
+    if (action.includes('message')) return <MessageSquare className="h-4 w-4" />;
+    if (action.includes('payment')) return <DollarSign className="h-4 w-4" />;
+    return <User className="h-4 w-4" />;
   };
 
   const getActionColor = (action: string) => {
-    switch (action) {
-      case 'member_registered':
-        return 'bg-green-100 text-green-800';
-      case 'message_sent':
-        return 'bg-blue-100 text-blue-800';
-      case 'payment_processed':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'vote_created':
-        return 'bg-purple-100 text-purple-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+    if (action.includes('create') || action.includes('register')) return 'bg-green-100 text-green-800';
+    if (action.includes('update')) return 'bg-blue-100 text-blue-800';
+    if (action.includes('delete')) return 'bg-red-100 text-red-800';
+    if (action.includes('sent')) return 'bg-cyan-100 text-cyan-800';
+    if (action.includes('vote')) return 'bg-purple-100 text-purple-800';
+    return 'bg-gray-100 text-gray-800';
   };
 
   const formatTimestamp = (timestamp: string) => {
@@ -163,19 +90,21 @@ const ActivityLog: React.FC<ActivityLogProps> = ({ userRole, limit = 50 }) => {
               <div key={activity.id} className="flex items-start space-x-4 p-3 rounded-lg hover:bg-gray-50">
                 <Avatar className="h-10 w-10">
                   <AvatarFallback>
-                    {activity.userName.split(' ').map(n => n[0]).join('')}
+                    {activity.user_name.split(' ').map(n => n[0]).join('')}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <Badge variant="secondary" className={getActionColor(activity.action)}>
                       {getActionIcon(activity.action)}
-                      <span className="ml-1 capitalize">{activity.action.replace('_', ' ')}</span>
+                      <span className="ml-1 capitalize">{activity.action.replace(/_/g, ' ')}</span>
                     </Badge>
-                    <span className="text-sm text-gray-500">{formatTimestamp(activity.timestamp)}</span>
+                    <span className="text-sm text-gray-500">{formatTimestamp(activity.created_at)}</span>
                   </div>
-                  <p className="text-sm font-medium text-gray-900">{activity.userName}</p>
-                  <p className="text-sm text-gray-600">{activity.details}</p>
+                  <p className="text-sm font-medium text-gray-900">{activity.user_name}</p>
+                  <p className="text-sm text-gray-600 truncate">
+                    {Object.entries(activity.details || {}).map(([key, value]) => `${key}: ${value}`).join(', ')}
+                  </p>
                 </div>
               </div>
             ))}

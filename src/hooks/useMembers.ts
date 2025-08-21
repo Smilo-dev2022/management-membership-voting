@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAuditLog } from './useAuditLog';
 import { generateMembershipNumber } from '@/lib/membershipUtils';
 
 interface Member {
@@ -30,6 +31,7 @@ interface SearchFilters {
 
 export const useMembers = () => {
   const { profile } = useAuth();
+  const { createLog } = useAuditLog();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -142,6 +144,13 @@ export const useMembers = () => {
 
       if (error) throw error;
       
+      createLog({
+        action: 'member_created',
+        target_type: 'member',
+        target_id: data.id,
+        details: { name: data.name, email: data.email },
+      });
+
       await fetchMembers();
       return data;
     } catch (err) {
@@ -169,6 +178,13 @@ export const useMembers = () => {
         .eq('id', member.id);
 
       if (error) throw error;
+
+      createLog({
+        action: 'member_updated',
+        target_type: 'member',
+        target_id: member.id,
+        details: { name: member.name },
+      });
       
       await fetchMembers();
     } catch (err) {
@@ -184,6 +200,12 @@ export const useMembers = () => {
         .eq('id', memberId);
 
       if (error) throw error;
+
+      createLog({
+        action: 'member_deleted',
+        target_type: 'member',
+        target_id: memberId,
+      });
       
       await fetchMembers();
     } catch (err) {
@@ -199,6 +221,12 @@ export const useMembers = () => {
         .in('id', memberIds);
 
       if (error) throw error;
+
+      createLog({
+        action: 'member_bulk_status_updated',
+        target_type: 'member',
+        details: { count: memberIds.length, new_status: status },
+      });
       
       await fetchMembers();
     } catch (err) {
