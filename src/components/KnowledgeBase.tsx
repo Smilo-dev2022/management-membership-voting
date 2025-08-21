@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Search, BookOpen, FileText, HelpCircle, Download } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { IECDataViewer } from '@/components/IECDataViewer';
+import AddArticle from './AddArticle';
 
 interface Article {
   id: string;
@@ -41,11 +42,7 @@ export default function KnowledgeBase() {
     { id: 'compliance', name: 'Compliance' }
   ];
 
-  useEffect(() => {
-    fetchKnowledgeContent();
-  }, [selectedCategory]);
-
-  const fetchKnowledgeContent = async () => {
+  const fetchKnowledgeContent = useCallback(async () => {
     try {
       const { data: articlesData } = await supabase.functions.invoke('knowledge-api/articles', {
         body: { category: selectedCategory === 'all' ? null : selectedCategory }
@@ -60,7 +57,11 @@ export default function KnowledgeBase() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    fetchKnowledgeContent();
+  }, [fetchKnowledgeContent]);
 
   const filteredArticles = articles.filter(article =>
     article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -76,10 +77,13 @@ export default function KnowledgeBase() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Knowledge Base</h1>
-        <Button variant="outline">
-          <Download className="w-4 h-4 mr-2" />
-          Offline Sync
-        </Button>
+        <div className="flex gap-2">
+          <AddArticle onArticleAdded={fetchKnowledgeContent} />
+          <Button variant="outline">
+            <Download className="w-4 h-4 mr-2" />
+            Offline Sync
+          </Button>
+        </div>
       </div>
 
       <div className="flex gap-4 mb-6">
