@@ -36,6 +36,22 @@ export interface Municipality {
   Municipality: string;
 }
 
+export interface VotingStationLocation {
+  Town: string;
+  Suburb: string;
+  Street: string;
+  Latitude: number;
+  Longitude: number;
+  ProvinceID: number;
+  Province: string;
+  MunicipalityID: number;
+  Municipality: string;
+  WardID: number;
+  VDNumber: number;
+  VotingDistrict: string;
+  VDAddress: string;
+}
+
 export interface VotingStation {
   Name: string;
   Delimitation: {
@@ -100,7 +116,7 @@ class IECApiService {
     return this.fetchFromIEC('/api/Elections');
   }
 
-  async getVotingStations(electoralEventID: string): Promise<VotingStation[]> {
+  async getVotingStations(electoralEventID: string): Promise<VotingStationLocation[]> {
     const endpoint = `/api/v1/VotingStations?ElectoralEventID=${electoralEventID}`;
     return this.fetchFromIEC(endpoint);
   }

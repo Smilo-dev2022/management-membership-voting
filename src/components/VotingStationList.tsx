@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { iecApiService, VotingStation, Province, Municipality } from '@/services/iecApi';
+import { iecApiService, VotingStationLocation, Province, Municipality } from '@/services/iecApi';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 
 export default function VotingStationList() {
-  const [votingStations, setVotingStations] = useState<VotingStation[]>([]);
+  const [votingStations, setVotingStations] = useState<VotingStationLocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,10 +58,10 @@ export default function VotingStationList() {
   const filteredStations = useMemo(() => {
     return votingStations
       .filter(station =>
-        (selectedProvince === 'all' || station.Delimitation.ProvinceID.toString() === selectedProvince) &&
-        (selectedMunicipality === 'all' || station.Delimitation.MunicipalityID.toString() === selectedMunicipality) &&
-        (station.Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         station.Location.VDAddress.toLowerCase().includes(searchTerm.toLowerCase()))
+        (selectedProvince === 'all' || station.ProvinceID.toString() === selectedProvince) &&
+        (selectedMunicipality === 'all' || station.MunicipalityID.toString() === selectedMunicipality) &&
+        (station.VotingDistrict.toLowerCase().includes(searchTerm.toLowerCase()) ||
+         station.VDAddress.toLowerCase().includes(searchTerm.toLowerCase()))
       );
   }, [votingStations, selectedProvince, selectedMunicipality, searchTerm]);
 
@@ -101,7 +101,7 @@ export default function VotingStationList() {
         </Select>
 
         <Input
-          placeholder="Search by name or address..."
+          placeholder="Search by district or address..."
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
         />
@@ -111,7 +111,7 @@ export default function VotingStationList() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
+              <TableHead>Voting District</TableHead>
               <TableHead>Province</TableHead>
               <TableHead>Municipality</TableHead>
               <TableHead>Address</TableHead>
@@ -120,10 +120,10 @@ export default function VotingStationList() {
           <TableBody>
             {filteredStations.map((station, index) => (
               <TableRow key={index}>
-                <TableCell>{station.Name}</TableCell>
-                <TableCell>{station.Delimitation.Province}</TableCell>
-                <TableCell>{station.Delimitation.Municipality}</TableCell>
-                <TableCell>{station.Location.VDAddress}</TableCell>
+                <TableCell>{station.VotingDistrict}</TableCell>
+                <TableCell>{station.Province}</TableCell>
+                <TableCell>{station.Municipality}</TableCell>
+                <TableCell>{station.VDAddress}</TableCell>
               </TableRow>
             ))}
           </TableBody>
