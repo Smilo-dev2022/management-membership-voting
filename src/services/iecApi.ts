@@ -26,6 +26,8 @@ export interface ElectionInfo {
   status: string;
 }
 
+import type { VoterExt } from '@/types';
+
 class IECApiService {
   private async fetchFromIEC(endpoint: string): Promise<any> {
     try {
@@ -61,6 +63,15 @@ class IECApiService {
 
   async getElectionInfo(): Promise<ElectionInfo[]> {
     return this.fetchFromIEC('/api/Elections');
+  }
+
+  async getVoterExtByVoterId(voterId: string, accept: 'json' | 'xml' = 'json'): Promise<VoterExt> {
+    const endpoint = `/api/Voters/VoterExt/VoterId/${encodeURIComponent(voterId)}`;
+    if (accept === 'xml') {
+      // For XML, still return text to caller to parse if needed
+      return this.fetchFromIEC(endpoint); // caller can set Accept header if needed in future
+    }
+    return this.fetchFromIEC(endpoint);
   }
 }
 

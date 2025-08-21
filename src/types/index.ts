@@ -52,3 +52,45 @@ export interface Vote {
   created_by: string;
   status: 'active' | 'closed' | 'pending';
 }
+
+// Voter extended details based on IEC API response shape
+export interface VoterExtDelimitation {
+  ProvinceID: number;
+  Province: string;
+  MunicipalityID: number;
+  Municipality: string;
+  WardID: number;
+  VDNumber: number;
+}
+
+export interface VoterExtLocation {
+  Town: string;
+  Suburb: string;
+  Street: string;
+  Latitude: number;
+  Longitude: number;
+  ProvinceID: number;
+  Province: string;
+  MunicipalityID: number;
+  Municipality: string;
+  WardID: number;
+  VDNumber: number;
+  VotingDistrict: string;
+  VDAddress: string;
+}
+
+export interface VoterExtVotingStation {
+  Name: string;
+  Delimitation: VoterExtDelimitation;
+  Location: VoterExtLocation;
+}
+
+export interface VoterExt {
+  Id: string;
+  VoterStatus: string;
+  VoterStatusID: number;
+  bRegistered: boolean;
+  VotingStation: VoterExtVotingStation | null;
+  bVDPortionLost: boolean;
+  bSendAddressMsg: boolean;
+}
