@@ -106,22 +106,44 @@ export default function InteractiveGuide({ guideId, onComplete, onBack }: Intera
   };
 
   const loadProgress = async () => {
-    // Load user's progress from database
-    // Mock implementation
+    try {
+      const raw = localStorage.getItem(`guide-progress:${guideId}`);
+      if (raw) {
+        const saved = JSON.parse(raw) as { current_step: number; completed_steps: boolean[] };
+        if (Array.isArray(saved.completed_steps)) {
+          setCompletedSteps(saved.completed_steps);
+        }
+        if (typeof saved.current_step === 'number') {
+          setCurrentStep(saved.current_step);
+        }
+      }
+    } catch (e) {
+      console.error('Error loading saved progress:', e);
+    }
   };
 
   const saveProgress = async () => {
-    // Save progress to database
+    // Persist locally and optionally send to backend
+    try {
+      localStorage.setItem(
+        `guide-progress:${guideId}`,
+        JSON.stringify({ guide_id: guideId, current_step: currentStep, completed_steps: completedSteps })
+      );
+    } catch (e) {
+      console.error('Error saving progress locally:', e);
+    }
+
     try {
       await supabase.functions.invoke('knowledge-api/progress', {
         body: {
           guide_id: guideId,
           current_step: currentStep,
-          completed_steps: completedSteps
-        }
+          completed_steps: completedSteps,
+        },
       });
     } catch (error) {
-      console.error('Error saving progress:', error);
+      // Optional backend sync failure should not block UX
+      console.warn('Progress sync failed (continuing offline):', error);
     }
   };
 

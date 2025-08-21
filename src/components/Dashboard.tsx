@@ -13,8 +13,13 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   const handleNavigate = (level: string, id: string) => {
-    console.log(`Navigating to ${level}:`, id);
-    // TODO: Implement navigation logic
+    // Update URL hash for simple deep-linking within the single route app
+    const hash = `#${level}${id ? `/${id}` : ''}`;
+    try {
+      window.location.hash = hash;
+    } catch (_e) {
+      // no-op in non-browser environments
+    }
   };
 
   const renderDashboard = () => {
