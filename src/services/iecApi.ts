@@ -26,6 +26,103 @@ export interface ElectionInfo {
   status: string;
 }
 
+// Voter details response types (matching IEC casing)
+export interface VoterAllDetailsExt {
+  Voter: Voter;
+  WardCouncilor?: WardCouncilor;
+  SpecialVoter?: SpecialVoter;
+}
+
+export interface Voter {
+  Id: string;
+  VoterStatus: string;
+  VoterStatusID: number;
+  bRegistered: boolean;
+  VotingStation?: VotingStation;
+  bVDPortionLost: boolean;
+  bSendAddressMsg: boolean;
+}
+
+export interface VotingStation {
+  Name: string;
+  Delimitation?: Delimitation;
+  Location?: Location;
+}
+
+export interface Delimitation {
+  ProvinceID: number;
+  Province: string;
+  MunicipalityID: number;
+  Municipality: string;
+  WardID: number;
+  VDNumber: number;
+}
+
+export interface Location {
+  Town: string;
+  Suburb: string;
+  Street: string;
+  Latitude: number;
+  Longitude: number;
+  ProvinceID: number;
+  Province: string;
+  MunicipalityID: number;
+  Municipality: string;
+  WardID: number;
+  VDNumber: number;
+  VotingDistrict: string;
+  VDAddress: string;
+}
+
+export interface WardCouncilor {
+  Name: string;
+  Delimitation?: Delimitation;
+  PartyDetail?: PartyDetail;
+  Municipality?: MunicipalityDetail;
+  ProvinceID?: number;
+  Province?: string;
+  MunicipalityID?: number;
+  WardID?: number;
+  PartyID?: number;
+  PartyName?: string;
+  PartyAbbreviation?: string;
+}
+
+export interface PartyDetail {
+  ID: number;
+  Name: string;
+  Abbreviation: string;
+  LogoUrl: string;
+  RegStatus: string;
+  RegLevel: string;
+  ContactDetails?: ContactDetails;
+}
+
+export interface ContactDetails {
+  ContactPerson: string;
+  Tel: string;
+  Fax: string;
+  PostalAddress: string;
+  WebsiteUrl: string;
+}
+
+export interface MunicipalityDetail {
+  ID: number;
+  Name: string;
+  ContactDetails?: ContactDetails;
+}
+
+export interface SpecialVoter {
+  SpecialVotesStatus: string;
+  ApplicationStatus: string;
+  IsOpen: boolean;
+  ApplicationStatusID: number;
+  EEID: number;
+  EEDescription: string;
+  ApplicationTypeID: number;
+  ApplicationTypeDescription: string;
+}
+
 class IECApiService {
   private async fetchFromIEC(endpoint: string): Promise<any> {
     try {
@@ -61,6 +158,11 @@ class IECApiService {
 
   async getElectionInfo(): Promise<ElectionInfo[]> {
     return this.fetchFromIEC('/api/Elections');
+  }
+
+  async getVoterAllDetailsByVoterId(voterId: string): Promise<VoterAllDetailsExt> {
+    const endpoint = `/api/Voters/VoterAllDetailsExt/VoterId/${encodeURIComponent(voterId)}`;
+    return this.fetchFromIEC(endpoint);
   }
 }
 
