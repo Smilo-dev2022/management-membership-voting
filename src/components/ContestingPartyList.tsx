@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { iecApiService, Party, Province } from '@/services/iecApi';
+import { iecApiService, Party, Province, Municipality } from '@/services/iecApi';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Loader2 } from 'lucide-react';
@@ -14,7 +14,9 @@ export default function ContestingPartyList({ electoralEventID }: ContestingPart
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [provinces, setProvinces] = useState<Province[]>([]);
+  const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
   const [selectedProvince, setSelectedProvince] = useState<string>('all');
+  const [selectedMunicipality, setSelectedMunicipality] = useState<string>('all');
 
   useEffect(() => {
     const fetchProvinces = async () => {
@@ -29,6 +31,24 @@ export default function ContestingPartyList({ electoralEventID }: ContestingPart
   }, []);
 
   useEffect(() => {
+    const fetchMunicipalities = async () => {
+      if (selectedProvince && selectedProvince !== 'all') {
+        try {
+          const data = await iecApiService.getMunicipalities(selectedProvince);
+          setMunicipalities(data);
+        } catch (err) {
+          console.error('Failed to fetch municipalities:', err);
+          setMunicipalities([]);
+        }
+      } else {
+        setMunicipalities([]);
+      }
+      setSelectedMunicipality('all');
+    };
+    fetchMunicipalities();
+  }, [selectedProvince]);
+
+  useEffect(() => {
     if (!electoralEventID) return;
 
     const fetchParties = async () => {
@@ -36,7 +56,8 @@ export default function ContestingPartyList({ electoralEventID }: ContestingPart
         setLoading(true);
         setError(null);
         const provinceId = selectedProvince === 'all' ? undefined : parseInt(selectedProvince, 10);
-        const data = await iecApiService.getContestingParties(electoralEventID, provinceId);
+        const municipalityId = selectedMunicipality === 'all' ? undefined : parseInt(selectedMunicipality, 10);
+        const data = await iecApiService.getContestingParties(electoralEventID, provinceId, municipalityId);
         setParties(data);
       } catch (err) {
         setError('Failed to fetch contesting parties.');
@@ -47,7 +68,7 @@ export default function ContestingPartyList({ electoralEventID }: ContestingPart
     };
 
     fetchParties();
-  }, [electoralEventID, selectedProvince]);
+  }, [electoralEventID, selectedProvince, selectedMunicipality]);
 
   if (loading) {
     return (
@@ -64,7 +85,7 @@ export default function ContestingPartyList({ electoralEventID }: ContestingPart
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-4">
         <Select value={selectedProvince} onValueChange={setSelectedProvince}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Filter by Province" />
@@ -73,6 +94,17 @@ export default function ContestingPartyList({ electoralEventID }: ContestingPart
             <SelectItem value="all">All Provinces</SelectItem>
             {provinces.map(p => (
               <SelectItem key={p.ProvinceID} value={p.ProvinceID.toString()}>{p.Province}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={selectedMunicipality} onValueChange={setSelectedMunicipality} disabled={selectedProvince === 'all'}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Filter by Municipality" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Municipalities</SelectItem>
+            {municipalities.map(m => (
+              <SelectItem key={m.MunicipalityID} value={m.MunicipalityID.toString()}>{m.Municipality}</SelectItem>
             ))}
           </SelectContent>
         </Select>
