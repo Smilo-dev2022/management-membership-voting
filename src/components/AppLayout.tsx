@@ -12,6 +12,7 @@ import Analytics from './Analytics';
 import Settings from './Settings';
 import PaymentSystem from './PaymentSystem';
 import KnowledgeBase from './KnowledgeBase';
+import MeetingManagement from './MeetingManagement';
 
 const AppLayout: React.FC = () => {
   const { sidebarOpen } = useAppContext();
@@ -32,6 +33,8 @@ const AppLayout: React.FC = () => {
         return <Dashboard userRole={user.role} />;
       case 'members':
         return <MemberManagement userRole={user.role} />;
+      case 'meetings':
+        return <MeetingManagement />;
       case 'offices':
         return <OfficeNavigation onNavigate={handleNavigate} />;
       case 'communications':

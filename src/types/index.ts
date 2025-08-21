@@ -40,6 +40,21 @@ export interface Event {
   organiser_id: string;
   office_id: string;
   rsvp_count: number;
+  minutes?: string;
+}
+
+export interface AgendaItem {
+  id: string;
+  event_id: string;
+  title: string;
+  description?: string;
+  duration: number; // in minutes
+}
+
+export interface EventAttendee {
+  event_id: string;
+  user_id: string;
+  status: 'attending' | 'absent' | 'maybe';
 }
 
 export interface Vote {
