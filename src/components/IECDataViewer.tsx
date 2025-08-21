@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, MapPin, Calendar, Search } from 'lucide-react';
-import { iecApiService, VotingDistrict, ElectionInfo } from '@/services/iecApi';
+import { Loader2, MapPin, Calendar, Search, User, Crosshair } from 'lucide-react';
+import { iecApiService, VotingDistrict, ElectionInfo, VoterAllDetailsExt, WardCouncilor, VotingStation, DelimitationLookup } from '@/services/iecApi';
 
 export const IECDataViewer: React.FC = () => {
   const [provinces, setProvinces] = useState<any[]>([]);
@@ -18,7 +18,21 @@ export const IECDataViewer: React.FC = () => {
   const [selectedWard, setSelectedWard] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'districts' | 'elections'>('districts');
+  const [activeTab, setActiveTab] = useState<'districts' | 'elections' | 'voter' | 'delimitation'>('districts');
+
+  // Voter lookup state
+  const [idNumber, setIdNumber] = useState<string>('');
+  const [voterId, setVoterId] = useState<string>('');
+  const [voterDetails, setVoterDetails] = useState<VoterAllDetailsExt | null>(null);
+  const [voterLoading, setVoterLoading] = useState(false);
+
+  // Delimitation lookup state
+  const [latitude, setLatitude] = useState<string>('');
+  const [longitude, setLongitude] = useState<string>('');
+  const [delimitation, setDelimitation] = useState<DelimitationLookup | null>(null);
+  const [councilor, setCouncilor] = useState<WardCouncilor | null>(null);
+  const [votingStation, setVotingStation] = useState<VotingStation | null>(null);
+  const [delimLoading, setDelimLoading] = useState(false);
 
   useEffect(() => {
     loadProvinces();
@@ -92,6 +106,78 @@ export const IECDataViewer: React.FC = () => {
     }
   };
 
+  const lookupVoterByIdNumber = async () => {
+    if (!idNumber.trim()) return;
+    setVoterLoading(true);
+    setError(null);
+    try {
+      const data = await iecApiService.getVoterAllDetailsByIdNumber(idNumber.trim());
+      setVoterDetails(data);
+    } catch (error) {
+      console.error('Failed to lookup voter by ID number:', error);
+      setError('Failed to load voter details.');
+      setVoterDetails(null);
+    } finally {
+      setVoterLoading(false);
+    }
+  };
+
+  const lookupVoterByVoterId = async () => {
+    if (!voterId.trim()) return;
+    setVoterLoading(true);
+    setError(null);
+    try {
+      const data = await iecApiService.getVoterAllDetailsByVoterId(voterId.trim());
+      setVoterDetails(data);
+    } catch (error) {
+      console.error('Failed to lookup voter by Voter ID:', error);
+      setError('Failed to load voter details.');
+      setVoterDetails(null);
+    } finally {
+      setVoterLoading(false);
+    }
+  };
+
+  const useBrowserLocation = () => {
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by this browser.');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLatitude(String(pos.coords.latitude));
+        setLongitude(String(pos.coords.longitude));
+      },
+      () => setError('Unable to retrieve your location.')
+    );
+  };
+
+  const lookupDelimitationByCoordinates = async () => {
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+    if (Number.isNaN(lat) || Number.isNaN(lng)) return;
+    setDelimLoading(true);
+    setError(null);
+    try {
+      const del = await iecApiService.getDelimitationByCoordinates(lat, lng);
+      setDelimitation(del);
+      const [c, vs] = await Promise.all([
+        iecApiService.getWardCouncilorByCoordinates(lat, lng).catch(() => null),
+        iecApiService.getVotingStationDetailsByLocation(lat, lng).catch(() => null),
+      ]);
+      setCouncilor(c as any);
+      setVotingStation(vs as any);
+    } catch (error) {
+      console.error('Failed to lookup delimitation by coordinates:', error);
+      setError('Failed to load delimitation information.');
+      setDelimitation(null);
+      setCouncilor(null);
+      setVotingStation(null);
+    } finally {
+      setDelimLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {error && (
@@ -115,6 +201,22 @@ export const IECDataViewer: React.FC = () => {
         >
           <Calendar className="h-4 w-4" />
           Elections
+        </Button>
+        <Button
+          variant={activeTab === 'voter' ? 'default' : 'ghost'}
+          onClick={() => setActiveTab('voter')}
+          className="flex items-center gap-2"
+        >
+          <User className="h-4 w-4" />
+          Voter Lookup
+        </Button>
+        <Button
+          variant={activeTab === 'delimitation' ? 'default' : 'ghost'}
+          onClick={() => setActiveTab('delimitation')}
+          className="flex items-center gap-2"
+        >
+          <Crosshair className="h-4 w-4" />
+          Delimitation
         </Button>
       </div>
 
@@ -249,6 +351,159 @@ export const IECDataViewer: React.FC = () => {
                 </Card>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === 'voter' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Voter Lookup
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">ID Number</label>
+                <div className="flex gap-2">
+                  <Input value={idNumber} onChange={(e) => setIdNumber(e.target.value)} placeholder="Enter 13-digit ID number" />
+                  <Button onClick={lookupVoterByIdNumber} disabled={voterLoading || !idNumber.trim()}>
+                    {voterLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Voter ID</label>
+                <div className="flex gap-2">
+                  <Input value={voterId} onChange={(e) => setVoterId(e.target.value)} placeholder="Enter Voter ID" />
+                  <Button onClick={lookupVoterByVoterId} disabled={voterLoading || !voterId.trim()}>
+                    {voterLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {voterLoading && (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span className="ml-2">Loading voter details...</span>
+              </div>
+            )}
+
+            {voterDetails && (
+              <div className="grid gap-4 md:grid-cols-2">
+                <Card className="p-4">
+                  <h4 className="font-semibold mb-2">Status</h4>
+                  <div className="space-y-1 text-sm text-muted-foreground">
+                    <div>Registered: {voterDetails.Voter?.bRegistered ? 'Yes' : 'No'}</div>
+                    <div>Status: {voterDetails.Voter?.VoterStatus}</div>
+                  </div>
+                </Card>
+                {voterDetails.Voter?.VotingStation && (
+                  <Card className="p-4">
+                    <h4 className="font-semibold mb-2">Voting Station</h4>
+                    <div className="space-y-1 text-sm text-muted-foreground">
+                      <div>Name: {voterDetails.Voter.VotingStation.Name}</div>
+                      {voterDetails.Voter.VotingStation.Location?.VDAddress && (
+                        <div>Address: {voterDetails.Voter.VotingStation.Location.VDAddress}</div>
+                      )}
+                      {voterDetails.Voter.VotingStation.Delimitation && (
+                        <div>
+                          VD: {voterDetails.Voter.VotingStation.Delimitation.VDNumber} | Ward: {voterDetails.Voter.VotingStation.Delimitation.WardID}
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                )}
+                {voterDetails.WardCouncilor && (
+                  <Card className="p-4 md:col-span-2">
+                    <h4 className="font-semibold mb-2">Ward Councilor</h4>
+                    <div className="text-sm text-muted-foreground">
+                      <div>Name: {voterDetails.WardCouncilor.Name}</div>
+                      {voterDetails.WardCouncilor.PartyDetail && (
+                        <div>Party: {voterDetails.WardCouncilor.PartyDetail.Name} ({voterDetails.WardCouncilor.PartyDetail.Abbreviation})</div>
+                      )}
+                    </div>
+                  </Card>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === 'delimitation' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Crosshair className="h-5 w-5" />
+              Delimitation by Coordinates
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Latitude</label>
+                <Input type="number" value={latitude} onChange={(e) => setLatitude(e.target.value)} placeholder="e.g. -26.2041" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Longitude</label>
+                <Input type="number" value={longitude} onChange={(e) => setLongitude(e.target.value)} placeholder="e.g. 28.0473" />
+              </div>
+              <div className="flex items-end gap-2">
+                <Button onClick={lookupDelimitationByCoordinates} disabled={delimLoading || !latitude || !longitude}>Lookup</Button>
+                <Button variant="outline" onClick={useBrowserLocation} title="Use my current location">
+                  <Crosshair className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {delimLoading && (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span className="ml-2">Loading delimitation...</span>
+              </div>
+            )}
+
+            {(delimitation || councilor || votingStation) && (
+              <div className="grid gap-4 md:grid-cols-3">
+                {delimitation && (
+                  <Card className="p-4">
+                    <h4 className="font-semibold mb-2">Delimitation</h4>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <div>Province: {delimitation.Province} (ID {delimitation.ProvinceID})</div>
+                      <div>Municipality: {delimitation.Municipality} (ID {delimitation.MunicipalityID})</div>
+                      <div>Ward: {delimitation.WardID}</div>
+                      <div>VD: {delimitation.VDNumber}</div>
+                    </div>
+                  </Card>
+                )}
+                {councilor && (
+                  <Card className="p-4">
+                    <h4 className="font-semibold mb-2">Ward Councilor</h4>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <div>Name: {councilor.Name}</div>
+                      {councilor.PartyDetail && (
+                        <div>Party: {councilor.PartyDetail.Name} ({councilor.PartyDetail.Abbreviation})</div>
+                      )}
+                    </div>
+                  </Card>
+                )}
+                {votingStation && (
+                  <Card className="p-4">
+                    <h4 className="font-semibold mb-2">Nearest Voting Station</h4>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <div>Name: {votingStation.Name}</div>
+                      {votingStation.Location?.VDAddress && (
+                        <div>Address: {votingStation.Location.VDAddress}</div>
+                      )}
+                    </div>
+                  </Card>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

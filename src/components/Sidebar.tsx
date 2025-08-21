@@ -26,6 +26,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userRole, onNavigate, currentPage }) 
   const getMenuItems = () => {
     const baseItems = [
       { id: 'dashboard', label: 'Dashboard', icon: Home },
+      { id: 'iec', label: 'IEC Data', icon: MapPin },
       { id: 'offices', label: 'Office Navigation', icon: MapPin },
       { id: 'members', label: 'Members', icon: Users },
       { id: 'communications', label: 'Communications', icon: MessageSquare },

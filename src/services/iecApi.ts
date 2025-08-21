@@ -74,6 +74,17 @@ export interface Location {
   VDAddress: string;
 }
 
+export interface DelimitationLookup {
+  ProvinceID: number;
+  Province: string;
+  MunicipalityID: number;
+  Municipality: string;
+  WardID: number;
+  Ward?: string;
+  VDNumber: number;
+  VotingDistrict?: string;
+}
+
 export interface WardCouncilor {
   Name: string;
   Delimitation?: Delimitation;
@@ -162,6 +173,36 @@ class IECApiService {
 
   async getVoterAllDetailsByVoterId(voterId: string): Promise<VoterAllDetailsExt> {
     const endpoint = `/api/Voters/VoterAllDetailsExt/VoterId/${encodeURIComponent(voterId)}`;
+    return this.fetchFromIEC(endpoint);
+  }
+
+  async getVoterAllDetailsByIdNumber(idNumber: string): Promise<VoterAllDetailsExt> {
+    const endpoint = `/api/Voters/VoterAllDetailsExt/IDNumber/${encodeURIComponent(idNumber)}`;
+    return this.fetchFromIEC(endpoint);
+  }
+
+  async getVoterStatusByIdNumber(idNumber: string): Promise<any> {
+    const endpoint = `/api/Voters/VoterStatus/IDNumber/${encodeURIComponent(idNumber)}`;
+    return this.fetchFromIEC(endpoint);
+  }
+
+  async getDelimitationByCoordinates(latitude: number, longitude: number): Promise<DelimitationLookup> {
+    const endpoint = `/api/Delimitation/Latitude/${encodeURIComponent(latitude)}/Longitude/${encodeURIComponent(longitude)}`;
+    return this.fetchFromIEC(endpoint);
+  }
+
+  async getWardCouncilorByCoordinates(latitude: number, longitude: number): Promise<WardCouncilor> {
+    const endpoint = `/api/LGEWardCouncilor/Latitude/${encodeURIComponent(latitude)}/Longitude/${encodeURIComponent(longitude)}`;
+    return this.fetchFromIEC(endpoint);
+  }
+
+  async getVotingStationDetailsByLocation(latitude: number, longitude: number): Promise<VotingStation> {
+    const endpoint = `/api/VotingStationDetails/GetVotingStationDetailsByLocation?Latitude=${encodeURIComponent(latitude)}&Longitude=${encodeURIComponent(longitude)}`;
+    return this.fetchFromIEC(endpoint);
+  }
+
+  async getVotingStationDetailsByVDNumber(vdNumber: string | number): Promise<VotingStation> {
+    const endpoint = `/api/VotingStationDetails/GetVotingStationDetailsByVD?VDNumber=${encodeURIComponent(vdNumber)}`;
     return this.fetchFromIEC(endpoint);
   }
 }
