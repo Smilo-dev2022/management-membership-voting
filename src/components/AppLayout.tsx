@@ -12,6 +12,7 @@ import Analytics from './Analytics';
 import Settings from './Settings';
 import PaymentSystem from './PaymentSystem';
 import KnowledgeBase from './KnowledgeBase';
+import { IECDataViewer } from './IECDataViewer';
 
 const AppLayout: React.FC = () => {
   const { sidebarOpen } = useAppContext();
@@ -30,6 +31,13 @@ const AppLayout: React.FC = () => {
     switch (currentPage) {
       case 'dashboard':
         return <Dashboard userRole={user.role} />;
+      case 'iec':
+        return (
+          <div className="p-6">
+            <h2 className="text-2xl font-bold mb-4">IEC Data</h2>
+            <IECDataViewer />
+          </div>
+        );
       case 'members':
         return <MemberManagement />;
       case 'offices':
