@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, MapPin, Calendar, Search } from 'lucide-react';
-import { iecApiService, VotingDistrict, ElectionInfo } from '@/services/iecApi';
+import { Loader2, MapPin, Calendar, Search, IdCard } from 'lucide-react';
+import { iecApiService, VotingDistrict, ElectionInfo, VoterAllDetails } from '@/services/iecApi';
 
 export const IECDataViewer: React.FC = () => {
   const [provinces, setProvinces] = useState<any[]>([]);
@@ -18,7 +18,13 @@ export const IECDataViewer: React.FC = () => {
   const [selectedWard, setSelectedWard] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'districts' | 'elections'>('districts');
+  const [activeTab, setActiveTab] = useState<'districts' | 'elections' | 'voter'>('districts');
+
+  // Voter lookup state
+  const [idNumber, setIdNumber] = useState<string>('');
+  const [voterResult, setVoterResult] = useState<VoterAllDetails | null>(null);
+  const [voterLoading, setVoterLoading] = useState(false);
+  const [voterError, setVoterError] = useState<string | null>(null);
 
   useEffect(() => {
     loadProvinces();
@@ -92,6 +98,25 @@ export const IECDataViewer: React.FC = () => {
     }
   };
 
+  const onLookupVoter = async () => {
+    setVoterError(null);
+    setVoterResult(null);
+    if (!idNumber) {
+      setVoterError('Please enter an ID number.');
+      return;
+    }
+    setVoterLoading(true);
+    try {
+      const data = await iecApiService.getVoterAllDetailsByIdNumber(idNumber.trim());
+      setVoterResult(data);
+    } catch (err: any) {
+      console.error('Failed to fetch voter details:', err);
+      setVoterError('Failed to fetch voter details. Verify the ID number and try again.');
+    } finally {
+      setVoterLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {error && (
@@ -115,6 +140,14 @@ export const IECDataViewer: React.FC = () => {
         >
           <Calendar className="h-4 w-4" />
           Elections
+        </Button>
+        <Button
+          variant={activeTab === 'voter' ? 'default' : 'ghost'}
+          onClick={() => setActiveTab('voter')}
+          className="flex items-center gap-2"
+        >
+          <IdCard className="h-4 w-4" />
+          Voter Lookup
         </Button>
       </div>
 
@@ -249,6 +282,76 @@ export const IECDataViewer: React.FC = () => {
                 </Card>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === 'voter' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <IdCard className="h-5 w-5" />
+              Voter Lookup
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2 items-center">
+              <Input
+                placeholder="Enter ID Number"
+                value={idNumber}
+                onChange={(e) => setIdNumber(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') onLookupVoter(); }}
+              />
+              <Button onClick={onLookupVoter} disabled={voterLoading} className="flex items-center gap-2">
+                {voterLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                Lookup
+              </Button>
+            </div>
+            {voterError && (
+              <div className="p-3 text-sm rounded border border-red-300 text-red-700 bg-red-50">{voterError}</div>
+            )}
+
+            {voterResult && (
+              <div className="space-y-4">
+                <Card className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-semibold">Voter</h4>
+                      <p className="text-sm text-muted-foreground">ID: {voterResult.Voter?.Id || '—'}</p>
+                      <p className="text-sm">Status: {voterResult.Voter?.VoterStatus || 'Unknown'}</p>
+                      <p className="text-sm">Registered: {voterResult.Voter?.bRegistered ? 'Yes' : 'No'}</p>
+                    </div>
+                    {voterResult.Voter?.VotingStation?.Name && (
+                      <Badge variant="outline">{voterResult.Voter?.VotingStation?.Name}</Badge>
+                    )}
+                  </div>
+                  {voterResult.Voter?.VotingStation?.Location && (
+                    <div className="mt-2 text-sm text-muted-foreground">
+                      <div>{voterResult.Voter.VotingStation.Location.Town} {voterResult.Voter.VotingStation.Location.Suburb}</div>
+                      <div>{voterResult.Voter.VotingStation.Location.Street}</div>
+                      <div>{voterResult.Voter.VotingStation.Location.VDAddress}</div>
+                    </div>
+                  )}
+                </Card>
+
+                {voterResult.WardCouncilor && (
+                  <Card className="p-4">
+                    <h4 className="font-semibold mb-1">Ward Councillor</h4>
+                    <p className="text-sm">Name: {voterResult.WardCouncilor.Name || '—'}</p>
+                    <p className="text-sm">Party: {voterResult.WardCouncilor.PartyName || voterResult.WardCouncilor.PartyDetail?.Name || '—'}</p>
+                    <p className="text-sm">Ward: {voterResult.WardCouncilor.WardID || voterResult.WardCouncilor.Delimitation?.WardID || '—'}</p>
+                  </Card>
+                )}
+
+                {voterResult.SpecialVoter && (
+                  <Card className="p-4">
+                    <h4 className="font-semibold mb-1">Special Vote</h4>
+                    <p className="text-sm">Status: {voterResult.SpecialVoter.SpecialVotesStatus || '—'}</p>
+                    <p className="text-sm">Application: {voterResult.SpecialVoter.ApplicationStatus || '—'}</p>
+                  </Card>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
