@@ -137,6 +137,11 @@ class IECApiService {
     }
   }
 
+  async getVoterExtByIdNumber(idNumber: string): Promise<import('@/types/iec').VoterExt> {
+    const endpoint = `/api/Voters/VoterExt/IDNumber/${encodeURIComponent(idNumber)}`;
+    return this.fetchFromIEC(endpoint);
+  }
+
   async getVotingDistrictsByWard(wardId: string, returnGeom: boolean = false): Promise<VotingDistrict[]> {
     const endpoint = `/api/VotingDistrictByWard?WardID=${wardId}&returnGeom=${returnGeom}`;
     return this.fetchFromIEC(endpoint);
