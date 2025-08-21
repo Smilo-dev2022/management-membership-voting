@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, MapPin, Calendar, Search, Map, Compass } from 'lucide-react';
+import { Loader2, MapPin, Calendar, Search, Map, Compass, Hash } from 'lucide-react';
 import { iecApiService, VotingDistrict, ElectionInfo } from '@/services/iecApi';
 import VotingStationList from './VotingStationList';
 import FindStationByLocation from './FindStationByLocation';
+import FindStationByVDNumber from './FindStationByVDNumber';
 
 export const IECDataViewer: React.FC = () => {
   const [provinces, setProvinces] = useState<any[]>([]);
@@ -20,7 +21,7 @@ export const IECDataViewer: React.FC = () => {
   const [selectedWard, setSelectedWard] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'districts' | 'elections' | 'stations' | 'findByLocation'>('districts');
+  const [activeTab, setActiveTab] = useState<'districts' | 'elections' | 'stations' | 'findByLocation' | 'findByVDNumber'>('districts');
 
   useEffect(() => {
     loadProvinces();
@@ -134,6 +135,14 @@ export const IECDataViewer: React.FC = () => {
           <Compass className="h-4 w-4" />
           Find by Location
         </Button>
+        <Button
+          variant={activeTab === 'findByVDNumber' ? 'default' : 'ghost'}
+          onClick={() => setActiveTab('findByVDNumber')}
+          className="flex items-center gap-2"
+        >
+          <Hash className="h-4 w-4" />
+          Find by VD Number
+        </Button>
       </div>
 
       {activeTab === 'districts' && (
@@ -236,6 +245,20 @@ export const IECDataViewer: React.FC = () => {
                 </div>
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === 'findByVDNumber' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Hash className="h-5 w-5" />
+              Find Voting Station by VD Number
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FindStationByVDNumber />
           </CardContent>
         </Card>
       )}
