@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, MapPin, Calendar, Search } from 'lucide-react';
-import { iecApiService, VotingDistrict, ElectionInfo } from '@/services/iecApi';
+import { Loader2, MapPin, Calendar, Search, IdCard } from 'lucide-react';
+import { iecApiService, VotingDistrict, ElectionInfo, VoterAllDetails } from '@/services/iecApi';
 
 export const IECDataViewer: React.FC = () => {
   const [provinces, setProvinces] = useState<any[]>([]);
@@ -18,7 +18,10 @@ export const IECDataViewer: React.FC = () => {
   const [selectedWard, setSelectedWard] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'districts' | 'elections'>('districts');
+  const [activeTab, setActiveTab] = useState<'districts' | 'elections' | 'voter'>('districts');
+  const [idNumber, setIdNumber] = useState<string>('');
+  const [voterDetails, setVoterDetails] = useState<VoterAllDetails | null>(null);
+  const [voterLoading, setVoterLoading] = useState<boolean>(false);
 
   useEffect(() => {
     loadProvinces();
@@ -92,6 +95,25 @@ export const IECDataViewer: React.FC = () => {
     }
   };
 
+  const lookupVoter = async () => {
+    if (!idNumber || idNumber.trim().length < 6) {
+      setError('Please enter a valid ID number.');
+      return;
+    }
+    setVoterLoading(true);
+    setError(null);
+    try {
+      const data = await iecApiService.getVoterAllDetailsByIdNumber(idNumber.trim());
+      setVoterDetails(data);
+    } catch (error) {
+      console.error('Failed to load voter details:', error);
+      setError('Failed to load voter details.');
+      setVoterDetails(null);
+    } finally {
+      setVoterLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {error && (
@@ -115,6 +137,14 @@ export const IECDataViewer: React.FC = () => {
         >
           <Calendar className="h-4 w-4" />
           Elections
+        </Button>
+        <Button
+          variant={activeTab === 'voter' ? 'default' : 'ghost'}
+          onClick={() => setActiveTab('voter')}
+          className="flex items-center gap-2"
+        >
+          <IdCard className="h-4 w-4" />
+          Voter Lookup
         </Button>
       </div>
 
@@ -249,6 +279,138 @@ export const IECDataViewer: React.FC = () => {
                 </Card>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === 'voter' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <IdCard className="h-5 w-5" />
+              Voter Registration Lookup
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2 items-center">
+              <Input
+                placeholder="Enter ID Number"
+                value={idNumber}
+                onChange={(e) => setIdNumber(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') lookupVoter();
+                }}
+              />
+              <Button onClick={lookupVoter} disabled={voterLoading} className="flex items-center gap-2">
+                {voterLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+                Search
+              </Button>
+            </div>
+
+            {voterDetails && (
+              <div className="space-y-4">
+                <Card className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-semibold">Voter</h4>
+                      <p className="text-sm text-muted-foreground">ID: {voterDetails.Voter.Id}</p>
+                    </div>
+                    <Badge variant={voterDetails.Voter.bRegistered ? 'success' : 'warning'}>
+                      {voterDetails.Voter.VoterStatus}
+                    </Badge>
+                  </div>
+                  <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Voter ID:</span> {voterDetails.Voter.VoterId}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Status ID:</span> {voterDetails.Voter.VoterStatusID}
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-4">
+                  <h4 className="font-semibold mb-2">Voting Station</h4>
+                  <div className="text-sm">
+                    <div className="font-medium">{voterDetails.Voter.VotingStation.Name}</div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                      <div>
+                        <span className="text-muted-foreground">Province:</span> {voterDetails.Voter.VotingStation.Delimitation.Province}
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Municipality:</span> {voterDetails.Voter.VotingStation.Delimitation.Municipality}
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Ward:</span> {voterDetails.Voter.VotingStation.Delimitation.WardID}
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">VD Number:</span> {voterDetails.Voter.VotingStation.Delimitation.VDNumber}
+                      </div>
+                    </div>
+                    <div className="mt-3 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Address:</span> {voterDetails.Voter.VotingStation.Location.VDAddress}
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
+                        <div>
+                          <span className="text-muted-foreground">Town:</span> {voterDetails.Voter.VotingStation.Location.Town}
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Suburb:</span> {voterDetails.Voter.VotingStation.Location.Suburb}
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Street:</span> {voterDetails.Voter.VotingStation.Location.Street}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {voterDetails.WardCouncilor && (
+                  <Card className="p-4">
+                    <h4 className="font-semibold mb-2">Ward Councillor</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Name:</span> {voterDetails.WardCouncilor.Name}
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Party:</span> {voterDetails.WardCouncilor.PartyName} ({voterDetails.WardCouncilor.PartyAbbreviation})
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Province:</span> {voterDetails.WardCouncilor.Province}
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Municipality:</span> {voterDetails.WardCouncilor.Municipality?.Name || voterDetails.WardCouncilor.Delimitation.Municipality}
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
+                {voterDetails.SpecialVoter && (
+                  <Card className="p-4">
+                    <h4 className="font-semibold mb-2">Special Votes</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Status:</span> {voterDetails.SpecialVoter.SpecialVotesStatus}
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Application:</span> {voterDetails.SpecialVoter.ApplicationStatus}
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Event:</span> {voterDetails.SpecialVoter.EEDescription}
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Type:</span> {voterDetails.SpecialVoter.ApplicationTypeDescription}
+                      </div>
+                    </div>
+                  </Card>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
