@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, MapPin, Calendar, Search } from 'lucide-react';
-import { iecApiService, VotingDistrict, ElectionInfo } from '@/services/iecApi';
+import { iecApiService, VotingDistrict, ElectionInfo, VoterAllDetailsExt } from '@/services/iecApi';
 
 export const IECDataViewer: React.FC = () => {
   const [provinces, setProvinces] = useState<any[]>([]);
@@ -18,7 +18,9 @@ export const IECDataViewer: React.FC = () => {
   const [selectedWard, setSelectedWard] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'districts' | 'elections'>('districts');
+  const [activeTab, setActiveTab] = useState<'districts' | 'elections' | 'voter'>('districts');
+  const [idInput, setIdInput] = useState<string>('');
+  const [voterDetails, setVoterDetails] = useState<VoterAllDetailsExt | null>(null);
 
   useEffect(() => {
     loadProvinces();
@@ -92,6 +94,22 @@ export const IECDataViewer: React.FC = () => {
     }
   };
 
+  const lookupVoter = async () => {
+    if (!idInput) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await iecApiService.getVoterAllDetailsExt(idInput);
+      setVoterDetails(data);
+    } catch (error) {
+      console.error('Failed to lookup voter:', error);
+      setError('Failed to lookup voter details.');
+      setVoterDetails(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {error && (
@@ -115,6 +133,14 @@ export const IECDataViewer: React.FC = () => {
         >
           <Calendar className="h-4 w-4" />
           Elections
+        </Button>
+        <Button
+          variant={activeTab === 'voter' ? 'default' : 'ghost'}
+          onClick={() => setActiveTab('voter')}
+          className="flex items-center gap-2"
+        >
+          <Search className="h-4 w-4" />
+          Voter Lookup
         </Button>
       </div>
 
@@ -249,6 +275,77 @@ export const IECDataViewer: React.FC = () => {
                 </Card>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === 'voter' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Search className="h-5 w-5" />
+              Voter Lookup
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Enter ID number"
+                value={idInput}
+                onChange={(e) => setIdInput(e.target.value)}
+              />
+              <Button onClick={lookupVoter} disabled={!idInput || loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="ml-2">Searching...</span>
+                  </>
+                ) : (
+                  <>
+                    <Search className="h-4 w-4" />
+                    Search
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {voterDetails && (
+              <div className="grid gap-4">
+                <Card className="p-4">
+                  <h4 className="font-semibold mb-2">Voter</h4>
+                  <div className="text-sm space-y-1">
+                    <div><span className="font-medium">Id:</span> {voterDetails.Voter?.Id || '-'}</div>
+                    <div><span className="font-medium">Status:</span> {voterDetails.Voter?.VoterStatus || '-'}</div>
+                    <div><span className="font-medium">Registered:</span> {String(voterDetails.Voter?.bRegistered ?? '-')}</div>
+                    <div><span className="font-medium">Voting Station:</span> {voterDetails.Voter?.VotingStation?.Name || '-'}</div>
+                    <div><span className="font-medium">Province:</span> {voterDetails.Voter?.VotingStation?.Delimitation?.Province || '-'}</div>
+                    <div><span className="font-medium">Municipality:</span> {voterDetails.Voter?.VotingStation?.Delimitation?.Municipality || '-'}</div>
+                    <div><span className="font-medium">Ward:</span> {voterDetails.Voter?.VotingStation?.Delimitation?.WardID ?? '-'}</div>
+                  </div>
+                </Card>
+
+                <Card className="p-4">
+                  <h4 className="font-semibold mb-2">Ward Councilor</h4>
+                  <div className="text-sm space-y-1">
+                    <div><span className="font-medium">Name:</span> {voterDetails.WardCouncilor?.Name || '-'}</div>
+                    <div><span className="font-medium">Party:</span> {voterDetails.WardCouncilor?.PartyName || voterDetails.WardCouncilor?.PartyDetail?.Name || '-'}</div>
+                    <div><span className="font-medium">Abbrev:</span> {voterDetails.WardCouncilor?.PartyAbbreviation || voterDetails.WardCouncilor?.PartyDetail?.Abbreviation || '-'}</div>
+                    <div><span className="font-medium">Province:</span> {voterDetails.WardCouncilor?.Province || '-'}</div>
+                    <div><span className="font-medium">Municipality:</span> {voterDetails.WardCouncilor?.Delimitation?.Municipality || '-'}</div>
+                    <div><span className="font-medium">Ward:</span> {voterDetails.WardCouncilor?.WardID ?? '-'}</div>
+                  </div>
+                </Card>
+
+                <Card className="p-4">
+                  <h4 className="font-semibold mb-2">Special Voter</h4>
+                  <div className="text-sm space-y-1">
+                    <div><span className="font-medium">Status:</span> {voterDetails.SpecialVoter?.SpecialVotesStatus || '-'}</div>
+                    <div><span className="font-medium">Application:</span> {voterDetails.SpecialVoter?.ApplicationStatus || '-'}</div>
+                    <div><span className="font-medium">Open:</span> {String(voterDetails.SpecialVoter?.IsOpen ?? '-')}</div>
+                  </div>
+                </Card>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
